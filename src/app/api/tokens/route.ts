@@ -15,7 +15,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const tokens = await prisma.apiToken.findMany({
-    where: { userId: session.userId, ativo: true },
+    where: { userId: session.userId, tenantId: session.tenantId, ativo: true },
     orderBy: { createdAt: 'desc' },
     select: {
       id: true,
@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
   const apiToken = await prisma.apiToken.create({
     data: {
       userId: session.userId,
+      tenantId: session.tenantId,
       nome,
       token,
       escopo,

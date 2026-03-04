@@ -15,8 +15,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params
 
+  // AporteEconomia has no tenantId — filter via metaEconomia which does
   const meta = await prisma.metaEconomia.findFirst({
-    where: { id, userId: session.userId },
+    where: { id, userId: session.userId, tenantId: session.tenantId },
   })
   if (!meta) return NextResponse.json({ error: 'Meta não encontrada' }, { status: 404 })
 

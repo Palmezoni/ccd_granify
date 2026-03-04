@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
   const ano = parseInt(searchParams.get('ano') || String(now.getFullYear()), 10)
 
   const metas = await prisma.meta.findMany({
-    where: { userId: session.userId, mes, ano },
+    where: { userId: session.userId, tenantId: session.tenantId, mes, ano },
     include: {
       categoria: { select: { id: true, nome: true, cor: true, icone: true, tipo: true } },
     },
@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
     metas.map(async (meta) => {
       const where: Record<string, unknown> = {
         userId: session.userId,
+        tenantId: session.tenantId,
         tipo: meta.tipo,
         status: 'CONFIRMADO',
         data: { gte: startOfMonth, lte: endOfMonth },
@@ -86,10 +87,11 @@ export async function POST(req: NextRequest) {
 
   const { categoriaId, tipo, valor, mes, ano } = parsed.data
   const userId = session.userId
+  const tenantId = session.tenantId
 
   // findFirst + create/update to handle nullable categoriaId in compound unique
   const existing = await prisma.meta.findFirst({
-    where: { userId, categoriaId: categoriaId ?? null, tipo, mes, ano },
+    where: { userId, tenantId, categoriaId: categoriaId ?? null, tipo, mes, ano },
   })
 
   const meta = existing
@@ -99,7 +101,7 @@ export async function POST(req: NextRequest) {
         include: { categoria: { select: { id: true, nome: true, cor: true, icone: true, tipo: true } } },
       })
     : await prisma.meta.create({
-        data: { userId, categoriaId: categoriaId ?? null, tipo, valor, mes, ano },
+        data: { userId, tenantId, categoriaId: categoriaId ?? null, tipo, valor, mes, ano },
         include: { categoria: { select: { id: true, nome: true, cor: true, icone: true, tipo: true } } },
       })
 

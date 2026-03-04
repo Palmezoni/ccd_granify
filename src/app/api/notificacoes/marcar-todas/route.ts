@@ -7,7 +7,7 @@ export async function POST() {
   if (!session) return NextResponse.json({ error: 'Nao autorizado' }, { status: 401 })
 
   await prisma.notificacao.updateMany({
-    where: { userId: session.userId, lida: false },
+    where: { userId: session.userId, tenantId: session.tenantId, lida: false },
     data: { lida: true },
   })
 

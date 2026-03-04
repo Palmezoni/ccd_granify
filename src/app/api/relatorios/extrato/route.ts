@@ -14,14 +14,15 @@ export async function GET(req: NextRequest) {
   const categoriaId = searchParams.get('categoriaId')
 
   const userId = session.userId
+  const tenantId = session.tenantId
 
   if (!contaId) {
     return NextResponse.json({ error: 'contaId é obrigatório' }, { status: 400 })
   }
 
-  // Verify the account belongs to the user
+  // Verify the account belongs to the user and tenant
   const conta = await prisma.conta.findFirst({
-    where: { id: contaId, userId },
+    where: { id: contaId, userId, tenantId },
     select: { id: true, nome: true, saldoInicial: true, cor: true },
   })
 
@@ -40,6 +41,7 @@ export async function GET(req: NextRequest) {
   // Build filter for lancamentos in period
   const whereInPeriod: Record<string, unknown> = {
     userId,
+    tenantId,
     contaId,
     status: { not: 'CANCELADO' },
     data: { gte: startDate, lte: endDate },
@@ -57,6 +59,7 @@ export async function GET(req: NextRequest) {
     prisma.lancamento.findMany({
       where: {
         userId,
+        tenantId,
         contaId,
         status: 'CONFIRMADO',
         tipo: { in: ['RECEITA', 'DESPESA'] },
@@ -108,6 +111,7 @@ export async function GET(req: NextRequest) {
   const todosMovimentos = await prisma.lancamento.findMany({
     where: {
       userId,
+      tenantId,
       contaId,
       status: 'CONFIRMADO',
       tipo: { in: ['RECEITA', 'DESPESA'] },

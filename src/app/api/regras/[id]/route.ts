@@ -11,8 +11,8 @@ const schema = z.object({
   ativa: z.boolean().optional(),
 })
 
-async function getRegraOrFail(id: string, userId: string) {
-  return prisma.regraPreenchi.findFirst({ where: { id, userId } })
+async function getRegraOrFail(id: string, userId: string, tenantId: string) {
+  return prisma.regraPreenchi.findFirst({ where: { id, userId, tenantId } })
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -20,7 +20,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  const regra = await getRegraOrFail(id, session.userId)
+  const regra = await getRegraOrFail(id, session.userId, session.tenantId)
   if (!regra) return NextResponse.json({ error: 'Regra não encontrada' }, { status: 404 })
 
   const body = await req.json()
@@ -42,7 +42,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  const regra = await getRegraOrFail(id, session.userId)
+  const regra = await getRegraOrFail(id, session.userId, session.tenantId)
   if (!regra) return NextResponse.json({ error: 'Regra não encontrada' }, { status: 404 })
 
   await prisma.regraPreenchi.delete({ where: { id } })

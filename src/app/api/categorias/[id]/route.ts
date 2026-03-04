@@ -12,8 +12,8 @@ const schema = z.object({
   ordem: z.number().optional(),
 })
 
-async function getCategoriaOrFail(id: string, userId: string) {
-  return prisma.categoria.findFirst({ where: { id, userId } })
+async function getCategoriaOrFail(id: string, userId: string, tenantId: string) {
+  return prisma.categoria.findFirst({ where: { id, userId, tenantId } })
 }
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -21,7 +21,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  const cat = await getCategoriaOrFail(id, session.userId)
+  const cat = await getCategoriaOrFail(id, session.userId, session.tenantId)
   if (!cat) return NextResponse.json({ error: 'Categoria não encontrada' }, { status: 404 })
 
   return NextResponse.json({ data: cat })
@@ -32,7 +32,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  const cat = await getCategoriaOrFail(id, session.userId)
+  const cat = await getCategoriaOrFail(id, session.userId, session.tenantId)
   if (!cat) return NextResponse.json({ error: 'Categoria não encontrada' }, { status: 404 })
 
   const body = await req.json()
@@ -50,7 +50,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  const cat = await getCategoriaOrFail(id, session.userId)
+  const cat = await getCategoriaOrFail(id, session.userId, session.tenantId)
   if (!cat) return NextResponse.json({ error: 'Categoria não encontrada' }, { status: 404 })
 
   // Remove sub-categorias junto

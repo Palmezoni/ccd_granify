@@ -12,6 +12,7 @@ export async function GET(req: Request) {
 
   const where = {
     userId: session.userId,
+    tenantId: session.tenantId,
     ...(apenasNaoLidas ? { lida: false } : {}),
   }
 
@@ -21,7 +22,7 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
       take: limite,
     }),
-    prisma.notificacao.count({ where: { userId: session.userId, lida: false } }),
+    prisma.notificacao.count({ where: { userId: session.userId, tenantId: session.tenantId, lida: false } }),
   ])
 
   return NextResponse.json({ notificacoes, totalNaoLidas })
@@ -32,7 +33,7 @@ export async function DELETE(req: Request) {
   if (!session) return NextResponse.json({ error: 'Nao autorizado' }, { status: 401 })
 
   await prisma.notificacao.deleteMany({
-    where: { userId: session.userId, lida: true },
+    where: { userId: session.userId, tenantId: session.tenantId, lida: true },
   })
 
   return NextResponse.json({ ok: true })

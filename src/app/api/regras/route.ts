@@ -15,7 +15,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const regras = await prisma.regraPreenchi.findMany({
-    where: { userId: session.userId },
+    where: { userId: session.userId, tenantId: session.tenantId },
     orderBy: { createdAt: 'asc' },
     include: {
       user: false,
@@ -29,13 +29,13 @@ export async function GET() {
   const [categorias, contas] = await Promise.all([
     categoriaIds.length > 0
       ? prisma.categoria.findMany({
-          where: { id: { in: categoriaIds }, userId: session.userId },
+          where: { id: { in: categoriaIds }, userId: session.userId, tenantId: session.tenantId },
           select: { id: true, nome: true, cor: true },
         })
       : [],
     contaIds.length > 0
       ? prisma.conta.findMany({
-          where: { id: { in: contaIds }, userId: session.userId },
+          where: { id: { in: contaIds }, userId: session.userId, tenantId: session.tenantId },
           select: { id: true, nome: true, cor: true },
         })
       : [],
@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
   const regra = await prisma.regraPreenchi.create({
     data: {
       userId: session.userId,
+      tenantId: session.tenantId,
       texto,
       categoriaId: categoriaId ?? null,
       contaId: contaId ?? null,

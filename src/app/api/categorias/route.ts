@@ -17,7 +17,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const categorias = await prisma.categoria.findMany({
-    where: { userId: session.userId, paiId: null },
+    where: { userId: session.userId, tenantId: session.tenantId, paiId: null },
     orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
     include: {
       filhos: { orderBy: [{ ordem: 'asc' }, { nome: 'asc' }] },
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   }
 
   const categoria = await prisma.categoria.create({
-    data: { ...parsed.data, userId: session.userId },
+    data: { ...parsed.data, userId: session.userId, tenantId: session.tenantId },
   })
 
   return NextResponse.json({ data: categoria }, { status: 201 })

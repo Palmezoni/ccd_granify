@@ -74,9 +74,9 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
   const { id: cartaoId } = await params
 
-  // Verify card belongs to user
+  // Verify card belongs to user and tenant
   const cartao = await prisma.cartaoCredito.findFirst({
-    where: { id: cartaoId, userId: session.userId },
+    where: { id: cartaoId, userId: session.userId, tenantId: session.tenantId },
   })
   if (!cartao) return NextResponse.json({ error: 'Cartão não encontrado' }, { status: 404 })
 
@@ -121,9 +121,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const { id: cartaoId } = await params
 
-  // Verify card belongs to user
+  // Verify card belongs to user and tenant
   const cartao = await prisma.cartaoCredito.findFirst({
-    where: { id: cartaoId, userId: session.userId },
+    where: { id: cartaoId, userId: session.userId, tenantId: session.tenantId },
   })
   if (!cartao) return NextResponse.json({ error: 'Cartão não encontrado' }, { status: 404 })
 

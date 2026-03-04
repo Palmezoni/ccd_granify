@@ -18,7 +18,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const cartoes = await prisma.cartaoCredito.findMany({
-    where: { userId: session.userId, ativa: true },
+    where: { userId: session.userId, tenantId: session.tenantId, ativa: true },
     include: {
       faturas: {
         where: { status: 'ABERTA' },
@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
     data: {
       ...parsed.data,
       userId: session.userId,
+      tenantId: session.tenantId,
     },
   })
 

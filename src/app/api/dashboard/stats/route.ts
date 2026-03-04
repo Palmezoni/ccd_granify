@@ -7,6 +7,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const userId = session.userId
+  const tenantId = session.tenantId
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
@@ -15,7 +16,7 @@ export async function GET() {
     await Promise.all([
       // All active accounts that should be included in total
       prisma.conta.findMany({
-        where: { userId, ativa: true, incluirTotal: true },
+        where: { userId, tenantId, ativa: true, incluirTotal: true },
         select: { id: true, saldoInicial: true },
       }),
 
@@ -23,6 +24,7 @@ export async function GET() {
       prisma.lancamento.aggregate({
         where: {
           userId,
+          tenantId,
           tipo: 'RECEITA',
           status: 'CONFIRMADO',
           data: { gte: startOfMonth, lte: endOfMonth },
@@ -34,6 +36,7 @@ export async function GET() {
       prisma.lancamento.aggregate({
         where: {
           userId,
+          tenantId,
           tipo: 'DESPESA',
           status: 'CONFIRMADO',
           data: { gte: startOfMonth, lte: endOfMonth },
@@ -44,20 +47,20 @@ export async function GET() {
       // For saldo: sum all RECEITA CONFIRMADO across all time (no month filter)
       prisma.lancamento.groupBy({
         by: ['contaId'],
-        where: { userId, tipo: 'RECEITA', status: 'CONFIRMADO' },
+        where: { userId, tenantId, tipo: 'RECEITA', status: 'CONFIRMADO' },
         _sum: { valor: true },
       }),
 
       // For saldo: sum all DESPESA CONFIRMADO across all time (no month filter)
       prisma.lancamento.groupBy({
         by: ['contaId'],
-        where: { userId, tipo: 'DESPESA', status: 'CONFIRMADO' },
+        where: { userId, tenantId, tipo: 'DESPESA', status: 'CONFIRMADO' },
         _sum: { valor: true },
       }),
 
       // Last 5 lancamentos
       prisma.lancamento.findMany({
-        where: { userId },
+        where: { userId, tenantId },
         orderBy: [{ data: 'desc' }, { createdAt: 'desc' }],
         take: 5,
         include: {

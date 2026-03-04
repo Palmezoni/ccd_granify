@@ -13,11 +13,11 @@ const actionSchema = z.discriminatedUnion('action', [
   }),
 ])
 
-async function getFaturaForUser(faturaId: string, userId: string) {
+async function getFaturaForUser(faturaId: string, userId: string, tenantId: string) {
   const fatura = await prisma.faturaCartao.findFirst({
     where: {
       id: faturaId,
-      cartao: { userId },
+      cartao: { userId, tenantId },
     },
     include: {
       cartao: { select: { id: true, nome: true, userId: true } },
@@ -35,7 +35,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   const fatura = await prisma.faturaCartao.findFirst({
     where: {
       id,
-      cartao: { userId: session.userId },
+      cartao: { userId: session.userId, tenantId: session.tenantId },
     },
     include: {
       cartao: { select: { id: true, nome: true, bandeira: true, cor: true, limite: true } },
@@ -66,7 +66,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { id } = await params
 
-  const fatura = await getFaturaForUser(id, session.userId)
+  const fatura = await getFaturaForUser(id, session.userId, session.tenantId)
   if (!fatura) return NextResponse.json({ error: 'Fatura não encontrada' }, { status: 404 })
 
   const body = await req.json()
@@ -136,6 +136,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         await tx.lancamento.create({
           data: {
             userId: session.userId,
+            tenantId: session.tenantId,
             tipo: 'DESPESA',
             descricao: `Pagamento Fatura ${fatura.cartao.nome} ${mes}/${fatura.ano}`,
             valor: valorTotal,

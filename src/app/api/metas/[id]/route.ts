@@ -11,8 +11,8 @@ const schema = z.object({
   ano: z.number().int().min(2000).max(2100).optional(),
 })
 
-async function getMetaOrFail(id: string, userId: string) {
-  return prisma.meta.findFirst({ where: { id, userId } })
+async function getMetaOrFail(id: string, userId: string, tenantId: string) {
+  return prisma.meta.findFirst({ where: { id, userId, tenantId } })
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -20,7 +20,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  const meta = await getMetaOrFail(id, session.userId)
+  const meta = await getMetaOrFail(id, session.userId, session.tenantId)
   if (!meta) return NextResponse.json({ error: 'Meta não encontrada' }, { status: 404 })
 
   const body = await req.json()
@@ -45,7 +45,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  const meta = await getMetaOrFail(id, session.userId)
+  const meta = await getMetaOrFail(id, session.userId, session.tenantId)
   if (!meta) return NextResponse.json({ error: 'Meta não encontrada' }, { status: 404 })
 
   await prisma.meta.delete({ where: { id } })

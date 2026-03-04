@@ -12,8 +12,8 @@ const schema = z.object({
   status: z.enum(['EM_ANDAMENTO', 'CONCLUIDA', 'CANCELADA']).optional(),
 })
 
-async function getMetaOrFail(id: string, userId: string) {
-  return prisma.metaEconomia.findFirst({ where: { id, userId } })
+async function getMetaOrFail(id: string, userId: string, tenantId: string) {
+  return prisma.metaEconomia.findFirst({ where: { id, userId, tenantId } })
 }
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -22,7 +22,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
   const { id } = await params
   const meta = await prisma.metaEconomia.findFirst({
-    where: { id, userId: session.userId },
+    where: { id, userId: session.userId, tenantId: session.tenantId },
     include: {
       aportes: {
         orderBy: { data: 'desc' },
@@ -55,7 +55,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  const meta = await getMetaOrFail(id, session.userId)
+  const meta = await getMetaOrFail(id, session.userId, session.tenantId)
   if (!meta) return NextResponse.json({ error: 'Meta não encontrada' }, { status: 404 })
 
   const body = await req.json()
@@ -82,7 +82,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  const meta = await getMetaOrFail(id, session.userId)
+  const meta = await getMetaOrFail(id, session.userId, session.tenantId)
   if (!meta) return NextResponse.json({ error: 'Meta não encontrada' }, { status: 404 })
 
   await prisma.metaEconomia.delete({ where: { id } })

@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   const limit = parseInt(searchParams.get('limit') || '50', 10)
   const page = parseInt(searchParams.get('page') || '1', 10)
 
-  const where: Record<string, unknown> = { userId: session.userId }
+  const where: Record<string, unknown> = { userId: session.userId, tenantId: session.tenantId }
 
   if (tipo && ['RECEITA', 'DESPESA', 'TRANSFERENCIA'].includes(tipo)) {
     where.tipo = tipo
@@ -110,6 +110,7 @@ export async function POST(req: NextRequest) {
       prisma.lancamento.create({
         data: {
           userId: session.userId,
+          tenantId: session.tenantId,
           tipo: 'DESPESA',
           descricao,
           valor,
@@ -130,6 +131,7 @@ export async function POST(req: NextRequest) {
       prisma.lancamento.create({
         data: {
           userId: session.userId,
+          tenantId: session.tenantId,
           tipo: 'RECEITA',
           descricao,
           valor,
@@ -161,6 +163,7 @@ export async function POST(req: NextRequest) {
       return prisma.lancamento.create({
         data: {
           userId: session.userId,
+          tenantId: session.tenantId,
           tipo,
           descricao: `${descricao} (${i + 1}/${parcelas})`,
           valor: valorParcela,
@@ -190,6 +193,7 @@ export async function POST(req: NextRequest) {
   const lancamento = await prisma.lancamento.create({
     data: {
       userId: session.userId,
+      tenantId: session.tenantId,
       tipo,
       descricao,
       valor,

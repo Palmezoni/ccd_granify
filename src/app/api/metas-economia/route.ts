@@ -16,7 +16,7 @@ export async function GET(_req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const metas = await prisma.metaEconomia.findMany({
-    where: { userId: session.userId },
+    where: { userId: session.userId, tenantId: session.tenantId },
     orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
     include: {
       _count: { select: { aportes: true } },
@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
   const meta = await prisma.metaEconomia.create({
     data: {
       userId: session.userId,
+      tenantId: session.tenantId,
       nome,
       valorAlvo,
       dataAlvo: dataAlvo ? new Date(dataAlvo) : null,

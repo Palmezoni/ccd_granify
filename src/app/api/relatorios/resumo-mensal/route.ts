@@ -15,12 +15,14 @@ export async function GET(req: NextRequest) {
   const endOfMonth = new Date(ano, mes, 0, 23, 59, 59, 999)
 
   const userId = session.userId
+  const tenantId = session.tenantId
 
   // Receitas e despesas do mês
   const [receitasAgg, despesasAgg, lancamentosMes, contas] = await Promise.all([
     prisma.lancamento.aggregate({
       where: {
         userId,
+        tenantId,
         tipo: 'RECEITA',
         status: 'CONFIRMADO',
         data: { gte: startOfMonth, lte: endOfMonth },
@@ -30,6 +32,7 @@ export async function GET(req: NextRequest) {
     prisma.lancamento.aggregate({
       where: {
         userId,
+        tenantId,
         tipo: 'DESPESA',
         status: 'CONFIRMADO',
         data: { gte: startOfMonth, lte: endOfMonth },
@@ -39,6 +42,7 @@ export async function GET(req: NextRequest) {
     prisma.lancamento.findMany({
       where: {
         userId,
+        tenantId,
         status: 'CONFIRMADO',
         tipo: { in: ['RECEITA', 'DESPESA'] },
         data: { gte: startOfMonth, lte: endOfMonth },
@@ -48,7 +52,7 @@ export async function GET(req: NextRequest) {
       },
     }),
     prisma.conta.findMany({
-      where: { userId, ativa: true },
+      where: { userId, tenantId, ativa: true },
       select: { id: true, nome: true, cor: true, saldoInicial: true },
     }),
   ])
@@ -95,6 +99,7 @@ export async function GET(req: NextRequest) {
     by: ['contaId', 'tipo'],
     where: {
       userId,
+      tenantId,
       status: 'CONFIRMADO',
       tipo: { in: ['RECEITA', 'DESPESA'] },
       data: { lte: endOfMonth },
@@ -144,11 +149,11 @@ export async function GET(req: NextRequest) {
 
     const [r, dp] = await Promise.all([
       prisma.lancamento.aggregate({
-        where: { userId, tipo: 'RECEITA', status: 'CONFIRMADO', data: { gte: start, lte: end } },
+        where: { userId, tenantId, tipo: 'RECEITA', status: 'CONFIRMADO', data: { gte: start, lte: end } },
         _sum: { valor: true },
       }),
       prisma.lancamento.aggregate({
-        where: { userId, tipo: 'DESPESA', status: 'CONFIRMADO', data: { gte: start, lte: end } },
+        where: { userId, tenantId, tipo: 'DESPESA', status: 'CONFIRMADO', data: { gte: start, lte: end } },
         _sum: { valor: true },
       }),
     ])

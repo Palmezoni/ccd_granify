@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const userId = session.userId
+  const tenantId = session.tenantId
   const { searchParams } = new URL(request.url)
   const ano = parseInt(searchParams.get('ano') ?? String(new Date().getFullYear()), 10)
 
@@ -17,6 +18,7 @@ export async function GET(request: NextRequest) {
     prisma.lancamento.findMany({
       where: {
         userId,
+        tenantId,
         data: { gte: new Date(ano, 0, 1), lt: new Date(ano + 1, 0, 1) },
         status: { not: 'CANCELADO' },
         tipo: { not: 'TRANSFERENCIA' },
@@ -28,6 +30,7 @@ export async function GET(request: NextRequest) {
     prisma.lancamento.findMany({
       where: {
         userId,
+        tenantId,
         data: { gte: new Date(ano, 0, 1), lt: new Date(ano + 1, 0, 1) },
         status: { not: 'CANCELADO' },
         tipo: { not: 'TRANSFERENCIA' },

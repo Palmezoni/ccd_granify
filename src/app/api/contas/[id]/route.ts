@@ -16,8 +16,8 @@ const schema = z.object({
   ordem: z.number().optional(),
 })
 
-async function getContaOrFail(id: string, userId: string) {
-  const conta = await prisma.conta.findFirst({ where: { id, userId } })
+async function getContaOrFail(id: string, userId: string, tenantId: string) {
+  const conta = await prisma.conta.findFirst({ where: { id, userId, tenantId } })
   if (!conta) return null
   return conta
 }
@@ -27,7 +27,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  const conta = await getContaOrFail(id, session.userId)
+  const conta = await getContaOrFail(id, session.userId, session.tenantId)
   if (!conta) return NextResponse.json({ error: 'Conta não encontrada' }, { status: 404 })
 
   return NextResponse.json({ data: conta })
@@ -38,7 +38,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  const conta = await getContaOrFail(id, session.userId)
+  const conta = await getContaOrFail(id, session.userId, session.tenantId)
   if (!conta) return NextResponse.json({ error: 'Conta não encontrada' }, { status: 404 })
 
   const body = await req.json()
@@ -60,7 +60,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  const conta = await getContaOrFail(id, session.userId)
+  const conta = await getContaOrFail(id, session.userId, session.tenantId)
   if (!conta) return NextResponse.json({ error: 'Conta não encontrada' }, { status: 404 })
 
   await prisma.conta.delete({ where: { id } })

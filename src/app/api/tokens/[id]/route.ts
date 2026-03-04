@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-async function getTokenOrFail(id: string, userId: string) {
-  return prisma.apiToken.findFirst({ where: { id, userId, ativo: true } })
+async function getTokenOrFail(id: string, userId: string, tenantId: string) {
+  return prisma.apiToken.findFirst({ where: { id, userId, tenantId, ativo: true } })
 }
 
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -11,7 +11,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  const apiToken = await getTokenOrFail(id, session.userId)
+  const apiToken = await getTokenOrFail(id, session.userId, session.tenantId)
   if (!apiToken) return NextResponse.json({ error: 'Token não encontrado' }, { status: 404 })
 
   // Revoke by setting ativo=false (soft delete)

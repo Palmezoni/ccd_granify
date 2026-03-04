@@ -14,8 +14,8 @@ const updateSchema = z.object({
   ativa: z.boolean().optional(),
 })
 
-async function getCartaoOrFail(id: string, userId: string) {
-  return prisma.cartaoCredito.findFirst({ where: { id, userId } })
+async function getCartaoOrFail(id: string, userId: string, tenantId: string) {
+  return prisma.cartaoCredito.findFirst({ where: { id, userId, tenantId } })
 }
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -23,7 +23,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  const cartao = await getCartaoOrFail(id, session.userId)
+  const cartao = await getCartaoOrFail(id, session.userId, session.tenantId)
   if (!cartao) return NextResponse.json({ error: 'Cartão não encontrado' }, { status: 404 })
 
   // Get last 6 months of faturas
@@ -31,7 +31,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1)
 
   const cartaoDetalhado = await prisma.cartaoCredito.findFirst({
-    where: { id, userId: session.userId },
+    where: { id, userId: session.userId, tenantId: session.tenantId },
     include: {
       faturas: {
         where: {
@@ -63,7 +63,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  const cartao = await getCartaoOrFail(id, session.userId)
+  const cartao = await getCartaoOrFail(id, session.userId, session.tenantId)
   if (!cartao) return NextResponse.json({ error: 'Cartão não encontrado' }, { status: 404 })
 
   const body = await req.json()
@@ -85,7 +85,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  const cartao = await getCartaoOrFail(id, session.userId)
+  const cartao = await getCartaoOrFail(id, session.userId, session.tenantId)
   if (!cartao) return NextResponse.json({ error: 'Cartão não encontrado' }, { status: 404 })
 
   // Check if there are lancamentos associated with this card

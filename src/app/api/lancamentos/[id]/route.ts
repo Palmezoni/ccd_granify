@@ -17,9 +17,9 @@ const schema = z.object({
   observacao: z.string().nullable().optional(),
 })
 
-async function getLancamentoOrFail(id: string, userId: string) {
+async function getLancamentoOrFail(id: string, userId: string, tenantId: string) {
   return prisma.lancamento.findFirst({
-    where: { id, userId },
+    where: { id, userId, tenantId },
     include: {
       categoria: { select: { id: true, nome: true, cor: true, icone: true } },
       conta: { select: { id: true, nome: true, cor: true } },
@@ -33,7 +33,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  const lancamento = await getLancamentoOrFail(id, session.userId)
+  const lancamento = await getLancamentoOrFail(id, session.userId, session.tenantId)
   if (!lancamento) return NextResponse.json({ error: 'Lançamento não encontrado' }, { status: 404 })
 
   return NextResponse.json({ data: lancamento })
@@ -44,7 +44,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  const lancamento = await getLancamentoOrFail(id, session.userId)
+  const lancamento = await getLancamentoOrFail(id, session.userId, session.tenantId)
   if (!lancamento) return NextResponse.json({ error: 'Lançamento não encontrado' }, { status: 404 })
 
   const body = await req.json()
@@ -77,7 +77,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  const lancamento = await getLancamentoOrFail(id, session.userId)
+  const lancamento = await getLancamentoOrFail(id, session.userId, session.tenantId)
   if (!lancamento) return NextResponse.json({ error: 'Lançamento não encontrado' }, { status: 404 })
 
   const { searchParams } = new URL(req.url)
@@ -85,12 +85,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   // If has parcelas > 1 or recorrenciaId, and deleteAll is requested, delete the whole group
   if (deleteAll && lancamento.parcelas > 1) {
-    // Delete all lancamentos with same descricao base, userId, and parcelas count
+    // Delete all lancamentos with same descricao base, userId, tenantId, and parcelas count
     // We identify sibling parcelas by matching the original description pattern
     const baseDescricao = lancamento.descricao.replace(/ \(\d+\/\d+\)$/, '')
     await prisma.lancamento.deleteMany({
       where: {
         userId: session.userId,
+        tenantId: session.tenantId,
         descricao: { startsWith: baseDescricao },
         parcelas: lancamento.parcelas,
         contaId: lancamento.contaId,
@@ -101,7 +102,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   if (deleteAll && lancamento.recorrenciaId) {
     await prisma.lancamento.deleteMany({
-      where: { userId: session.userId, recorrenciaId: lancamento.recorrenciaId },
+      where: { userId: session.userId, tenantId: session.tenantId, recorrenciaId: lancamento.recorrenciaId },
     })
     return NextResponse.json({ message: 'Todos os lançamentos recorrentes excluídos' })
   }

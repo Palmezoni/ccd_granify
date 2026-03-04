@@ -20,7 +20,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const contas = await prisma.conta.findMany({
-    where: { userId: session.userId },
+    where: { userId: session.userId, tenantId: session.tenantId },
     orderBy: [{ ordem: 'asc' }, { createdAt: 'asc' }],
   })
 
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   }
 
   const conta = await prisma.conta.create({
-    data: { ...parsed.data, userId: session.userId },
+    data: { ...parsed.data, userId: session.userId, tenantId: session.tenantId },
   })
 
   return NextResponse.json({ data: conta }, { status: 201 })
