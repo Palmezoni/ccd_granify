@@ -508,13 +508,7 @@ export default function CartoesPage() {
   return (
     <div className="min-h-full">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Cartões de Crédito</h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Gerencie seus cartões e faturas
-          </p>
-        </div>
+      <div className="mb-6 flex items-center justify-end">
         <button
           onClick={handleNew}
           className="flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-600 transition-colors"

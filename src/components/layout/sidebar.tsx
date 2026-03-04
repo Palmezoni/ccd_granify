@@ -252,19 +252,23 @@ export function Sidebar({ isAdmin = false }: { isAdmin?: boolean }) {
         ))}
       </nav>
 
-      <div
-        className={cn(
-          'flex flex-shrink-0 border-t border-sidebar-border p-2',
-          collapsed ? 'justify-center' : 'justify-end'
+      <div className="flex flex-shrink-0 flex-col border-t border-sidebar-border">
+        {!collapsed && (
+          <div className="py-1.5 text-center">
+            <span className="select-none text-[10px] font-medium tracking-wide text-muted-foreground/35">
+              v1.0.0
+            </span>
+          </div>
         )}
-      >
-        <button
-          onClick={toggle}
-          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
-          title={collapsed ? 'Expandir menu' : 'Recolher menu'}
-        >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </button>
+        <div className={cn('flex p-2', collapsed ? 'justify-center' : 'justify-end')}>
+          <button
+            onClick={toggle}
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
+            title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+          >
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
     </aside>
   )
