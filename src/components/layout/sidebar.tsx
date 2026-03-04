@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ArrowLeftRight, FileText, CreditCard,
-  Target, BarChart3, FolderOpen, Settings, TrendingUp, ChevronDown
+  Target, BarChart3, FolderOpen, Settings, TrendingUp, ChevronDown,
+  PiggyBank, Wallet2, Key, Shuffle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
@@ -23,8 +24,7 @@ const NAV: NavItem[] = [
     icon: <ArrowLeftRight className="h-4 w-4" />,
     children: [
       { label: 'Lançamentos', href: '/movimentacoes/lancamentos' },
-      { label: 'Fluxo de Caixa', href: '/movimentacoes/fluxo' },
-      { label: 'Contas a Pagar/Receber', href: '/movimentacoes/contas-pagar-receber' },
+      { label: 'Fluxo de Caixa', href: '/fluxo-de-caixa' },
     ],
   },
   { label: 'Extrato', href: '/extrato', icon: <FileText className="h-4 w-4" /> },
@@ -33,8 +33,8 @@ const NAV: NavItem[] = [
     label: 'Metas',
     icon: <Target className="h-4 w-4" />,
     children: [
-      { label: 'Orçamento', href: '/metas/orcamento' },
-      { label: 'Poupança', href: '/metas/economia' },
+      { label: 'Orçamento', href: '/metas' },
+      { label: 'Poupança', href: '/metas?tab=poupanca' },
     ],
   },
   { label: 'Relatórios', href: '/relatorios', icon: <BarChart3 className="h-4 w-4" /> },
@@ -46,16 +46,24 @@ const NAV: NavItem[] = [
       { label: 'Categorias', href: '/cadastros/categorias' },
     ],
   },
-  { label: 'Configurações', href: '/configuracoes', icon: <Settings className="h-4 w-4" /> },
+  {
+    label: 'Configurações',
+    icon: <Settings className="h-4 w-4" />,
+    children: [
+      { label: 'Regras Automáticas', href: '/configuracoes/regras' },
+      { label: 'Tokens de API', href: '/configuracoes/tokens' },
+    ],
+  },
 ]
 
 function NavItemComponent({ item }: { item: NavItem }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(() =>
-    item.children?.some((c) => pathname.startsWith(c.href)) ?? false
+    item.children?.some((c) => pathname.startsWith(c.href.split('?')[0])) ?? false
   )
 
   if (item.children) {
+    const isAnyChildActive = item.children.some((c) => pathname.startsWith(c.href.split('?')[0]))
     return (
       <div>
         <button
@@ -64,7 +72,7 @@ function NavItemComponent({ item }: { item: NavItem }) {
             'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
             'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
             'dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white',
-            open && 'text-slate-900 dark:text-white'
+            (open || isAnyChildActive) && 'text-slate-900 dark:text-white'
           )}
         >
           {item.icon}
@@ -79,7 +87,7 @@ function NavItemComponent({ item }: { item: NavItem }) {
                 href={child.href}
                 className={cn(
                   'block rounded-md px-2 py-1.5 text-sm transition-colors',
-                  pathname === child.href
+                  pathname === child.href.split('?')[0]
                     ? 'font-medium text-emerald-600 dark:text-emerald-400'
                     : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
                 )}
