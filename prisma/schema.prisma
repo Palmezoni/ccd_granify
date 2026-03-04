@@ -1,0 +1,398 @@
+// prisma/schema.prisma — GRANIFY
+// Plataforma de Gestão Financeira
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── AUTH ────────────────────────────────────────────────────────────────────
+
+model User {
+  id             String     @id @default(cuid())
+  name           String?
+  email          String     @unique
+  emailVerified  DateTime?
+  image          String?
+  password       String?    // bcrypt hashed
+  phone          String?
+  locale         String     @default("pt-BR") // pt-BR, en, es
+  currency       String     @default("BRL")
+  planId         String?
+  planStatus     PlanStatus @default(TRIAL)
+  trialEndsAt    DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  // NextAuth
+  accounts       Account[]
+  sessions       Session[]
+
+  // Financial
+  contas         Conta[]
+  cartoes        CartaoCredito[]
+  categorias     Categoria[]
+  lancamentos    Lancamento[]
+  recorrencias   Recorrencia[]
+  metas          Meta[]
+  metasEconomia  MetaEconomia[]
+  regrasPreen    RegraPreenchi[]
+  apiTokens      ApiToken[]
+  notificacoes   Notificacao[]
+
+  // Password reset
+  passwordResets PasswordReset[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum PlanStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+// ─── CONTAS FINANCEIRAS ───────────────────────────────────────────────────────
+
+model Conta {
+  id            String    @id @default(cuid())
+  userId        String
+  nome          String
+  tipo          TipoConta
+  banco         String?
+  agencia       String?
+  numero        String?
+  moeda         String    @default("BRL")
+  saldoInicial  Decimal   @default(0) @db.Decimal(18, 2)
+  cor           String?   // hex color
+  icone         String?
+  ativa         Boolean   @default(true)
+  incluirTotal  Boolean   @default(true) // include in total balance
+  ordem         Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lancamentos    Lancamento[]    @relation("ContaOrigem")
+  transferencias Lancamento[]    @relation("ContaDestino")
+  faturas        FaturaCartao[]
+}
+
+enum TipoConta {
+  CORRENTE
+  POUPANCA
+  DINHEIRO
+  INVESTIMENTO
+  OUTROS
+}
+
+// ─── CARTÕES DE CRÉDITO ───────────────────────────────────────────────────────
+
+model CartaoCredito {
+  id             String   @id @default(cuid())
+  userId         String
+  nome           String
+  bandeira       String   // VISA, MASTERCARD, ELO, AMEX, etc.
+  limite         Decimal  @db.Decimal(18, 2)
+  diaFechamento  Int      // 1-31
+  diaVencimento  Int      // 1-31
+  cor            String?  // hex
+  contaDebitoId  String?  // linked account for auto-payment
+  ativa          Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subCartoes SubCartao[]
+  faturas   FaturaCartao[]
+}
+
+model SubCartao {
+  id        String        @id @default(cuid())
+  cartaoId  String
+  tipo      TipoSubCartao
+  nome      String?
+  limite    Decimal?      @db.Decimal(18, 2)
+  titular   String?
+  ativo     Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  cartao      CartaoCredito @relation(fields: [cartaoId], references: [id], onDelete: Cascade)
+  lancamentos Lancamento[]
+}
+
+enum TipoSubCartao {
+  FISICO
+  VIRTUAL
+  ADICIONAL
+}
+
+model FaturaCartao {
+  id             String       @id @default(cuid())
+  cartaoId       String
+  contaId        String?      // conta de pagamento
+  mes            Int          // 1-12
+  ano            Int
+  valorTotal     Decimal      @default(0) @db.Decimal(18, 2)
+  status         StatusFatura @default(ABERTA)
+  dataVencimento DateTime
+  dataFechamento DateTime
+  dataPagamento  DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  cartao      CartaoCredito @relation(fields: [cartaoId], references: [id], onDelete: Cascade)
+  conta       Conta?        @relation(fields: [contaId], references: [id])
+  lancamentos Lancamento[]
+
+  @@unique([cartaoId, mes, ano])
+}
+
+enum StatusFatura {
+  ABERTA
+  FECHADA
+  PAGA
+}
+
+// ─── CATEGORIAS ───────────────────────────────────────────────────────────────
+
+model Categoria {
+  id        String        @id @default(cuid())
+  userId    String
+  nome      String
+  tipo      TipoCategoria
+  cor       String?       // hex
+  icone     String?
+  paiId     String?
+  ordem     Int           @default(0)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pai         Categoria?  @relation("SubCategorias", fields: [paiId], references: [id])
+  filhos      Categoria[] @relation("SubCategorias")
+  lancamentos Lancamento[]
+  metas       Meta[]
+}
+
+enum TipoCategoria {
+  RECEITA
+  DESPESA
+  AMBOS
+}
+
+// ─── LANÇAMENTOS ─────────────────────────────────────────────────────────────
+
+model Lancamento {
+  id              String           @id @default(cuid())
+  userId          String
+  tipo            TipoLancamento
+  descricao       String
+  valor           Decimal          @db.Decimal(18, 2)
+  data            DateTime
+  categoriaId     String?
+  contaId         String?          // conta origem (receita/despesa) ou origem (transferência)
+  contaDestinoId  String?          // conta destino (transferência)
+  cartaoId        String?          // subcartão utilizado
+  faturaId        String?          // fatura do cartão
+  status          StatusLancamento @default(CONFIRMADO)
+  recorrenciaId   String?          // grupo de recorrência
+  parcelas        Int              @default(1)
+  parcelaAtual    Int              @default(1)
+  observacao      String?
+  anexoUrl        String?          // URL do comprovante
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoria     Categoria?    @relation(fields: [categoriaId], references: [id])
+  conta         Conta?        @relation("ContaOrigem", fields: [contaId], references: [id])
+  contaDestino  Conta?        @relation("ContaDestino", fields: [contaDestinoId], references: [id])
+  subCartao     SubCartao?    @relation(fields: [cartaoId], references: [id])
+  fatura        FaturaCartao? @relation(fields: [faturaId], references: [id])
+  recorrencia   Recorrencia?  @relation(fields: [recorrenciaId], references: [id])
+}
+
+enum TipoLancamento {
+  RECEITA
+  DESPESA
+  TRANSFERENCIA
+}
+
+enum StatusLancamento {
+  CONFIRMADO
+  PROJETADO  // futuro / pendente
+  CANCELADO
+}
+
+// ─── RECORRÊNCIA ─────────────────────────────────────────────────────────────
+
+model Recorrencia {
+  id             String          @id @default(cuid())
+  userId         String
+  tipo           TipoRecorrencia
+  intervalo      Int             @default(1) // a cada N dias/meses
+  totalParcelas  Int?            // null = indefinido
+  proximaData    DateTime
+  ativa          Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lancamentos Lancamento[]
+}
+
+enum TipoRecorrencia {
+  SEMANAL
+  MENSAL
+  BIMESTRAL
+  TRIMESTRAL
+  SEMESTRAL
+  ANUAL
+}
+
+// ─── METAS ────────────────────────────────────────────────────────────────────
+
+model Meta {
+  id          String    @id @default(cuid())
+  userId      String
+  categoriaId String?
+  tipo        TipoMeta
+  valor       Decimal   @db.Decimal(18, 2)
+  mes         Int       // 1-12
+  ano         Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoria Categoria? @relation(fields: [categoriaId], references: [id])
+
+  @@unique([userId, categoriaId, mes, ano, tipo])
+}
+
+enum TipoMeta {
+  DESPESA
+  RECEITA
+}
+
+model MetaEconomia {
+  id          String        @id @default(cuid())
+  userId      String
+  nome        String
+  valorAlvo   Decimal       @db.Decimal(18, 2)
+  valorAtual  Decimal       @default(0) @db.Decimal(18, 2)
+  dataAlvo    DateTime?
+  cor         String?       // hex
+  icone       String?
+  status      StatusMetaEco @default(EM_ANDAMENTO)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aportes AporteEconomia[]
+}
+
+model AporteEconomia {
+  id        String   @id @default(cuid())
+  metaId    String
+  valor     Decimal  @db.Decimal(18, 2)
+  data      DateTime @default(now())
+  descricao String?
+  createdAt DateTime @default(now())
+
+  meta MetaEconomia @relation(fields: [metaId], references: [id], onDelete: Cascade)
+}
+
+enum StatusMetaEco {
+  EM_ANDAMENTO
+  CONCLUIDA
+  CANCELADA
+}
+
+// ─── REGRAS DE PREENCHIMENTO ──────────────────────────────────────────────────
+
+model RegraPreenchi {
+  id          String   @id @default(cuid())
+  userId      String
+  texto       String   // texto a ser encontrado na descrição
+  categoriaId String?
+  contaId     String?
+  descricao   String?  // substituir descrição por este valor
+  ativa       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── API TOKENS ───────────────────────────────────────────────────────────────
+
+model ApiToken {
+  id          String    @id @default(cuid())
+  userId      String
+  nome        String
+  token       String    @unique
+  escopo      String    @default("read") // read, write, full
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+  ativo       Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── NOTIFICAÇÕES ─────────────────────────────────────────────────────────────
+
+model Notificacao {
+  id        String   @id @default(cuid())
+  userId    String
+  titulo    String
+  mensagem  String
+  tipo      String   // VENCIMENTO, META, SISTEMA, FATURA
+  lida      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
