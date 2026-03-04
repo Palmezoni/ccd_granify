@@ -180,12 +180,6 @@ export default function RelatoriosPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold text-slate-900 dark:text-white">Relatórios</h1>
-        <p className="mt-0.5 text-sm text-slate-500">Análise detalhada das suas finanças</p>
-      </div>
-
       {/* Section tabs */}
       <div className="flex gap-1 rounded-xl border border-border bg-card p-1">
         {SECTIONS.map((s) => (

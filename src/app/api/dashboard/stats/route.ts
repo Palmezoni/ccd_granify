@@ -1,110 +1,156 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-  const userId = session.userId
-  const tenantId = session.tenantId
+  const { userId, tenantId } = session
+  const url = new URL(req.url)
+
   const now = new Date()
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+  const defaultInicio = new Date(now.getFullYear(), now.getMonth(), 1)
+  const defaultFim = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
 
-  const [contas, receitasAgg, despesasAgg, transRecebidasAgg, transEnviadasAgg, ultimos5] =
-    await Promise.all([
-      // All active accounts that should be included in total
-      prisma.conta.findMany({
-        where: { userId, tenantId, ativa: true, incluirTotal: true },
-        select: { id: true, saldoInicial: true },
-      }),
+  const inicioStr = url.searchParams.get('inicio')
+  const fimStr = url.searchParams.get('fim')
+  const contasParam = url.searchParams.get('contas')
 
-      // Sum of RECEITA CONFIRMADO for current month
-      prisma.lancamento.aggregate({
-        where: {
-          userId,
-          tenantId,
-          tipo: 'RECEITA',
-          status: 'CONFIRMADO',
-          data: { gte: startOfMonth, lte: endOfMonth },
-        },
-        _sum: { valor: true },
-      }),
+  const inicio = inicioStr ? new Date(inicioStr + 'T00:00:00') : defaultInicio
+  const fim = fimStr ? new Date(fimStr + 'T23:59:59.999') : defaultFim
+  const contasFiltro: string[] | null = contasParam ? contasParam.split(',').filter(Boolean) : null
 
-      // Sum of DESPESA CONFIRMADO for current month
-      prisma.lancamento.aggregate({
-        where: {
-          userId,
-          tenantId,
-          tipo: 'DESPESA',
-          status: 'CONFIRMADO',
-          data: { gte: startOfMonth, lte: endOfMonth },
-        },
-        _sum: { valor: true },
-      }),
+  // Date range for last 12 months (evolution chart — always full range regardless of period filter)
+  const dozeAtras = new Date(now.getFullYear(), now.getMonth() - 11, 1)
 
-      // For saldo: sum all RECEITA CONFIRMADO across all time (no month filter)
-      prisma.lancamento.groupBy({
-        by: ['contaId'],
-        where: { userId, tenantId, tipo: 'RECEITA', status: 'CONFIRMADO' },
-        _sum: { valor: true },
-      }),
+  const contaIdFilter = contasFiltro ? { id: { in: contasFiltro } } : {}
+  const lancamentoContaFilter = contasFiltro ? { contaId: { in: contasFiltro } } : {}
 
-      // For saldo: sum all DESPESA CONFIRMADO across all time (no month filter)
-      prisma.lancamento.groupBy({
-        by: ['contaId'],
-        where: { userId, tenantId, tipo: 'DESPESA', status: 'CONFIRMADO' },
-        _sum: { valor: true },
-      }),
+  const [contas, allLancamentos, periodLancamentos, evolucaoLancamentos] = await Promise.all([
+    // All active accounts (filtered by selection if any)
+    prisma.conta.findMany({
+      where: { userId, tenantId, ativa: true, ...contaIdFilter },
+      select: { id: true, nome: true, saldoInicial: true, cor: true, tipo: true, incluirTotal: true },
+      orderBy: { ordem: 'asc' },
+    }),
 
-      // Last 5 lancamentos
-      prisma.lancamento.findMany({
-        where: { userId, tenantId },
-        orderBy: [{ data: 'desc' }, { createdAt: 'desc' }],
-        take: 5,
-        include: {
-          categoria: { select: { id: true, nome: true, cor: true, icone: true } },
-          conta: { select: { id: true, nome: true, cor: true } },
-          contaDestino: { select: { id: true, nome: true, cor: true } },
-        },
-      }),
-    ])
+    // All-time CONFIRMED transactions (for live saldo calculation)
+    prisma.lancamento.findMany({
+      where: {
+        userId,
+        tenantId,
+        status: 'CONFIRMADO',
+        ...(contasFiltro
+          ? { OR: [{ contaId: { in: contasFiltro } }, { contaDestinoId: { in: contasFiltro } }] }
+          : {}),
+      },
+      select: { tipo: true, valor: true, contaId: true, contaDestinoId: true },
+    }),
 
-  // Build lookup maps for conta-level transaction sums
-  const receitasPorConta = new Map<string, number>()
-  for (const row of transRecebidasAgg) {
-    if (row.contaId) {
-      receitasPorConta.set(row.contaId, Number(row._sum.valor ?? 0))
+    // Transactions within selected period
+    prisma.lancamento.findMany({
+      where: {
+        userId,
+        tenantId,
+        data: { gte: inicio, lte: fim },
+        ...lancamentoContaFilter,
+      },
+      select: {
+        id: true,
+        descricao: true,
+        valor: true,
+        tipo: true,
+        data: true,
+        status: true,
+        contaId: true,
+        categoria: { select: { id: true, nome: true, cor: true } },
+        conta: { select: { nome: true } },
+      },
+      orderBy: [{ data: 'desc' }, { createdAt: 'desc' }],
+    }),
+
+    // Last 12 months of RECEITA/DESPESA (for evolution chart)
+    prisma.lancamento.findMany({
+      where: {
+        userId,
+        tenantId,
+        status: 'CONFIRMADO',
+        tipo: { in: ['RECEITA', 'DESPESA'] },
+        data: { gte: dozeAtras },
+        ...lancamentoContaFilter,
+      },
+      select: { tipo: true, valor: true, data: true },
+    }),
+  ])
+
+  // ─── Calculate live saldo per account ────────────────────────────────────────
+  const contasComSaldo = contas.map((conta) => {
+    let saldo = Number(conta.saldoInicial)
+    for (const l of allLancamentos) {
+      if (l.tipo === 'RECEITA' && l.contaId === conta.id) saldo += Number(l.valor)
+      if (l.tipo === 'DESPESA' && l.contaId === conta.id) saldo -= Number(l.valor)
+      if (l.tipo === 'TRANSFERENCIA' && l.contaId === conta.id) saldo -= Number(l.valor)
+      if (l.tipo === 'TRANSFERENCIA' && l.contaDestinoId === conta.id) saldo += Number(l.valor)
     }
-  }
+    return { ...conta, saldoInicial: Number(conta.saldoInicial), saldo }
+  })
 
-  const despesasPorConta = new Map<string, number>()
-  for (const row of transEnviadasAgg) {
-    if (row.contaId) {
-      despesasPorConta.set(row.contaId, Number(row._sum.valor ?? 0))
-    }
-  }
+  const saldoTotal = contasComSaldo.filter((c) => c.incluirTotal).reduce((s, c) => s + c.saldo, 0)
 
-  // Calculate dynamic saldo total
-  const saldoTotal = contas.reduce((sum, conta) => {
-    const saldoInicial = Number(conta.saldoInicial)
-    const receitas = receitasPorConta.get(conta.id) ?? 0
-    const despesas = despesasPorConta.get(conta.id) ?? 0
-    return sum + saldoInicial + receitas - despesas
-  }, 0)
-
-  const receitasMes = Number(receitasAgg._sum.valor ?? 0)
-  const despesasMes = Number(despesasAgg._sum.valor ?? 0)
+  // ─── KPIs from period (CONFIRMADO only) ──────────────────────────────────────
+  const confirmed = periodLancamentos.filter((l) => l.status === 'CONFIRMADO')
+  const receitasMes = confirmed
+    .filter((l) => l.tipo === 'RECEITA')
+    .reduce((s, l) => s + Number(l.valor), 0)
+  const despesasMes = confirmed
+    .filter((l) => l.tipo === 'DESPESA')
+    .reduce((s, l) => s + Number(l.valor), 0)
   const resultado = receitasMes - despesasMes
 
+  // ─── Last 8 transactions (all statuses, within period) ───────────────────────
+  const ultimos8 = periodLancamentos.slice(0, 8)
+
+  // ─── Despesas por categoria (period, confirmed) ──────────────────────────────
+  const catMap = new Map<string, { nome: string; cor: string | null; total: number }>()
+  for (const l of confirmed.filter((l) => l.tipo === 'DESPESA')) {
+    const catId = l.categoria?.id ?? '__sem__'
+    const catNome = l.categoria?.nome ?? 'Sem categoria'
+    const catCor = l.categoria?.cor ?? null
+    const entry = catMap.get(catId) ?? { nome: catNome, cor: catCor, total: 0 }
+    entry.total += Number(l.valor)
+    catMap.set(catId, entry)
+  }
+  const despesasPorCategoria = Array.from(catMap.values())
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 8)
+
+  // ─── Evolution: last 12 months ───────────────────────────────────────────────
+  const evolucaoMap = new Map<string, { receitas: number; despesas: number }>()
+  for (const l of evolucaoLancamentos) {
+    const d = new Date(l.data)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const entry = evolucaoMap.get(key) ?? { receitas: 0, despesas: 0 }
+    if (l.tipo === 'RECEITA') entry.receitas += Number(l.valor)
+    else entry.despesas += Number(l.valor)
+    evolucaoMap.set(key, entry)
+  }
+
+  const evolucao = []
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const label = d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')
+    const entry = evolucaoMap.get(key) ?? { receitas: 0, despesas: 0 }
+    evolucao.push({ mes: label, receitas: entry.receitas, despesas: entry.despesas })
+  }
+
   return NextResponse.json({
-    data: {
-      saldoTotal,
-      receitasMes,
-      despesasMes,
-      resultado,
-      ultimos5lancamentos: ultimos5,
-    },
+    kpis: { saldoTotal, receitasMes, despesasMes, resultado },
+    contas: contasComSaldo,
+    ultimos8,
+    despesasPorCategoria,
+    evolucao,
+    periodo: { inicio: inicio.toISOString(), fim: fim.toISOString() },
   })
 }

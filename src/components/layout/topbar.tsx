@@ -139,32 +139,34 @@ export function Topbar({ user }: TopbarProps) {
 
   return (
     <header className="flex h-14 flex-shrink-0 items-center justify-between border-b border-border bg-sidebar px-4 z-30">
-      <div className="flex items-center gap-3">
+      {/* LEFT: title + shortcuts aligned left */}
+      <div className="flex min-w-0 items-center gap-2">
         {pageTitle && (
-          <h1 className="font-heading text-sm font-semibold text-foreground">
+          <h1 className="whitespace-nowrap font-heading text-sm font-semibold text-foreground">
             {pageTitle}
           </h1>
         )}
-      </div>
-
-      <div className="flex items-center gap-1">
         {activeShortcuts.length > 0 && (
           <>
+            {pageTitle && <div className="h-4 w-px flex-shrink-0 bg-border" />}
             <div className="flex items-center gap-0.5">
               {activeShortcuts.map((s) => (
                 <Link
                   key={s.id}
                   href={s.href}
                   title={t(s.labelKey as any)}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
+                  className="flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
                 >
                   {SHORTCUT_ICONS[s.icon]}
+                  <span className="hidden lg:inline">{t(s.labelKey as any)}</span>
                 </Link>
               ))}
             </div>
-            <div className="mx-1 h-5 w-px bg-border" />
           </>
         )}
+      </div>
+
+      <div className="flex items-center gap-1">
 
         <ThemeToggle />
         <div className="mx-1 h-5 w-px bg-border" />

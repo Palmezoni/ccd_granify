@@ -1025,12 +1025,6 @@ export default function MetasPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div>
-        <h1 className="text-xl font-bold text-slate-900 dark:text-white">Metas</h1>
-        <p className="mt-0.5 text-sm text-slate-500">Gerencie orçamentos e objetivos de poupança</p>
-      </div>
-
       {/* Tabs */}
       <div className="flex gap-1 rounded-xl border border-border bg-slate-50 p-1 dark:bg-slate-900">
         {([

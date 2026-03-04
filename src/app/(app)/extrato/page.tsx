@@ -156,12 +156,6 @@ export default function ExtratoPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold text-slate-900 dark:text-white">Extrato</h1>
-        <p className="mt-0.5 text-sm text-slate-500">Movimentações detalhadas por conta</p>
-      </div>
-
       {/* Filters */}
       <div className="rounded-xl border border-border bg-card p-4">
         <div className="flex flex-wrap items-center gap-3">

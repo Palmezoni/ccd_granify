@@ -174,12 +174,7 @@ export default function FluxoDeCaixaPage() {
     <div className="space-y-6">
 
       {/* ── Page Header ── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Fluxo de Caixa</h1>
-          <p className="mt-0.5 text-sm text-slate-500">Análise de receitas, despesas e saldo acumulado</p>
-        </div>
-
+      <div className="flex items-center justify-end">
         {/* Year selector */}
         <div className="flex items-center gap-1 rounded-xl border border-border bg-card px-2 py-1.5">
           <button

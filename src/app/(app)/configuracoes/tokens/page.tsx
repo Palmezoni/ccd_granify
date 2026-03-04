@@ -111,11 +111,7 @@ export default function TokensPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Tokens de API</h1>
-          <p className="mt-0.5 text-sm text-slate-500">Use tokens para integrar o Granify com outros sistemas</p>
-        </div>
+      <div className="flex items-center justify-end">
         <button
           onClick={openCreate}
           className="flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-500/30 transition hover:bg-emerald-600"
