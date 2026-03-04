@@ -1,5 +1,5 @@
 // prisma/schema.prisma — GRANIFY
-// Plataforma de Gestão Financeira
+// Plataforma de Gestão Financeira — Multi-tenant
 
 generator client {
   provider = "prisma-client-js"
@@ -10,17 +10,45 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── TENANT (entidade principal de multi-tenancy) ─────────────────────────────
+
+model Tenant {
+  id          String     @id @default(cuid())
+  nome        String
+  slug        String     @unique
+  plano       String     @default("free")
+  planStatus  PlanStatus @default(TRIAL)
+  ativo       Boolean    @default(true)
+  trialEndsAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  membros      User[]
+
+  contas        Conta[]
+  cartoes       CartaoCredito[]
+  categorias    Categoria[]
+  lancamentos   Lancamento[]
+  recorrencias  Recorrencia[]
+  metas         Meta[]
+  metasEconomia MetaEconomia[]
+  regrasPreen   RegraPreenchi[]
+  apiTokens     ApiToken[]
+  notificacoes  Notificacao[]
+}
+
 // ─── AUTH ────────────────────────────────────────────────────────────────────
 
 model User {
   id             String     @id @default(cuid())
+  tenantId       String?
   name           String?
   email          String     @unique
   emailVerified  DateTime?
   image          String?
-  password       String?    // bcrypt hashed
+  password       String?
   phone          String?
-  locale         String     @default("pt-BR") // pt-BR, en, es
+  locale         String     @default("pt-BR")
   currency       String     @default("BRL")
   role           Role       @default(USER)
   planId         String?
@@ -29,11 +57,11 @@ model User {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
-  // NextAuth
+  tenant         Tenant?    @relation(fields: [tenantId], references: [id])
+
   accounts       Account[]
   sessions       Session[]
 
-  // Financial
   contas         Conta[]
   cartoes        CartaoCredito[]
   categorias     Categoria[]
@@ -45,7 +73,6 @@ model User {
   apiTokens      ApiToken[]
   notificacoes   Notificacao[]
 
-  // Password reset
   passwordResets PasswordReset[]
 }
 
@@ -102,6 +129,7 @@ enum PlanStatus {
 
 model Conta {
   id            String    @id @default(cuid())
+  tenantId      String
   userId        String
   nome          String
   tipo          TipoConta
@@ -110,14 +138,15 @@ model Conta {
   numero        String?
   moeda         String    @default("BRL")
   saldoInicial  Decimal   @default(0) @db.Decimal(18, 2)
-  cor           String?   // hex color
+  cor           String?
   icone         String?
   ativa         Boolean   @default(true)
-  incluirTotal  Boolean   @default(true) // include in total balance
+  incluirTotal  Boolean   @default(true)
   ordem         Int       @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   lancamentos    Lancamento[]    @relation("ContaOrigem")
   transferencias Lancamento[]    @relation("ContaDestino")
@@ -136,21 +165,23 @@ enum TipoConta {
 
 model CartaoCredito {
   id             String   @id @default(cuid())
+  tenantId       String
   userId         String
   nome           String
-  bandeira       String   // VISA, MASTERCARD, ELO, AMEX, etc.
+  bandeira       String
   limite         Decimal  @db.Decimal(18, 2)
-  diaFechamento  Int      // 1-31
-  diaVencimento  Int      // 1-31
-  cor            String?  // hex
-  contaDebitoId  String?  // linked account for auto-payment
+  diaFechamento  Int
+  diaVencimento  Int
+  cor            String?
+  contaDebitoId  String?
   ativa          Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant     Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   subCartoes SubCartao[]
-  faturas   FaturaCartao[]
+  faturas    FaturaCartao[]
 }
 
 model SubCartao {
@@ -177,8 +208,8 @@ enum TipoSubCartao {
 model FaturaCartao {
   id             String       @id @default(cuid())
   cartaoId       String
-  contaId        String?      // conta de pagamento
-  mes            Int          // 1-12
+  contaId        String?
+  mes            Int
   ano            Int
   valorTotal     Decimal      @default(0) @db.Decimal(18, 2)
   status         StatusFatura @default(ABERTA)
@@ -205,16 +236,18 @@ enum StatusFatura {
 
 model Categoria {
   id        String        @id @default(cuid())
+  tenantId  String
   userId    String
   nome      String
   tipo      TipoCategoria
-  cor       String?       // hex
+  cor       String?
   icone     String?
   paiId     String?
   ordem     Int           @default(0)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   pai         Categoria?  @relation("SubCategorias", fields: [paiId], references: [id])
   filhos      Categoria[] @relation("SubCategorias")
@@ -232,25 +265,27 @@ enum TipoCategoria {
 
 model Lancamento {
   id              String           @id @default(cuid())
+  tenantId        String
   userId          String
   tipo            TipoLancamento
   descricao       String
   valor           Decimal          @db.Decimal(18, 2)
   data            DateTime
   categoriaId     String?
-  contaId         String?          // conta origem (receita/despesa) ou origem (transferência)
-  contaDestinoId  String?          // conta destino (transferência)
-  cartaoId        String?          // subcartão utilizado
-  faturaId        String?          // fatura do cartão
+  contaId         String?
+  contaDestinoId  String?
+  cartaoId        String?
+  faturaId        String?
   status          StatusLancamento @default(CONFIRMADO)
-  recorrenciaId   String?          // grupo de recorrência
+  recorrenciaId   String?
   parcelas        Int              @default(1)
   parcelaAtual    Int              @default(1)
   observacao      String?
-  anexoUrl        String?          // URL do comprovante
+  anexoUrl        String?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   categoria     Categoria?    @relation(fields: [categoriaId], references: [id])
   conta         Conta?        @relation("ContaOrigem", fields: [contaId], references: [id])
@@ -268,7 +303,7 @@ enum TipoLancamento {
 
 enum StatusLancamento {
   CONFIRMADO
-  PROJETADO  // futuro / pendente
+  PROJETADO
   CANCELADO
 }
 
@@ -276,15 +311,17 @@ enum StatusLancamento {
 
 model Recorrencia {
   id             String          @id @default(cuid())
+  tenantId       String
   userId         String
   tipo           TipoRecorrencia
-  intervalo      Int             @default(1) // a cada N dias/meses
-  totalParcelas  Int?            // null = indefinido
+  intervalo      Int             @default(1)
+  totalParcelas  Int?
   proximaData    DateTime
   ativa          Boolean         @default(true)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   lancamentos Lancamento[]
 }
@@ -302,19 +339,21 @@ enum TipoRecorrencia {
 
 model Meta {
   id          String    @id @default(cuid())
+  tenantId    String
   userId      String
   categoriaId String?
   tipo        TipoMeta
   valor       Decimal   @db.Decimal(18, 2)
-  mes         Int       // 1-12
+  mes         Int
   ano         Int
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   categoria Categoria? @relation(fields: [categoriaId], references: [id])
 
-  @@unique([userId, categoriaId, mes, ano, tipo])
+  @@unique([tenantId, userId, categoriaId, mes, ano, tipo])
 }
 
 enum TipoMeta {
@@ -324,17 +363,19 @@ enum TipoMeta {
 
 model MetaEconomia {
   id          String        @id @default(cuid())
+  tenantId    String
   userId      String
   nome        String
   valorAlvo   Decimal       @db.Decimal(18, 2)
   valorAtual  Decimal       @default(0) @db.Decimal(18, 2)
   dataAlvo    DateTime?
-  cor         String?       // hex
+  cor         String?
   icone       String?
   status      StatusMetaEco @default(EM_ANDAMENTO)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
+  tenant  Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   aportes AporteEconomia[]
 }
@@ -360,45 +401,51 @@ enum StatusMetaEco {
 
 model RegraPreenchi {
   id          String   @id @default(cuid())
+  tenantId    String
   userId      String
-  texto       String   // texto a ser encontrado na descrição
+  texto       String
   categoriaId String?
   contaId     String?
-  descricao   String?  // substituir descrição por este valor
+  descricao   String?
   ativa       Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ─── API TOKENS ───────────────────────────────────────────────────────────────
 
 model ApiToken {
   id          String    @id @default(cuid())
+  tenantId    String
   userId      String
   nome        String
   token       String    @unique
-  escopo      String    @default("read") // read, write, full
+  escopo      String    @default("read")
   expiresAt   DateTime?
   lastUsedAt  DateTime?
   ativo       Boolean   @default(true)
   createdAt   DateTime  @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ─── NOTIFICAÇÕES ─────────────────────────────────────────────────────────────
 
 model Notificacao {
   id        String   @id @default(cuid())
+  tenantId  String
   userId    String
   titulo    String
   mensagem  String
-  tipo      String   // VENCIMENTO, META, SISTEMA, FATURA
+  tipo      String
   lida      Boolean  @default(false)
   link      String?
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

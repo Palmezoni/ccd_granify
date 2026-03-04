@@ -11,6 +11,7 @@ const EXPIRES_IN = 60 * 60 * 24 * 7 // 7 dias
 
 export interface JWTPayload {
   userId: string
+  tenantId: string
   email: string
   name: string | null
 }

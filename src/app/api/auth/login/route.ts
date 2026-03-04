@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const parsed = schema.safeParse(body)
 
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
+      return NextResponse.json({ error: 'Dados invalidos' }, { status: 400 })
     }
 
     const { email, password } = parsed.data
@@ -30,7 +30,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'E-mail ou senha incorretos' }, { status: 401 })
     }
 
-    const token = await signToken({ userId: user.id, email: user.email, name: user.name })
+    // tenantId may be null for legacy accounts — use empty string as fallback
+    const tenantId = user.tenantId ?? ''
+
+    const token = await signToken({
+      userId: user.id,
+      tenantId,
+      email: user.email,
+      name: user.name,
+    })
     const cookie = createSessionCookie(token)
 
     const res = NextResponse.json({ message: 'Login realizado com sucesso' })
