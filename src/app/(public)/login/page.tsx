@@ -80,7 +80,7 @@ export default function LoginPage() {
             <div>
               <div className="mb-1.5 flex items-center justify-between">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Senha</label>
-                <Link href="/login/recuperar-senha" className="text-xs text-emerald-600 hover:underline dark:text-emerald-400">
+                <Link href="/forgot-password" className="text-xs text-emerald-600 hover:underline dark:text-emerald-400">
                   Esqueceu a senha?
                 </Link>
               </div>

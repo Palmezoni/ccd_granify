@@ -28,44 +28,46 @@ const CATEGORIAS_PADRAO = [
   { nome: 'Outras Receitas', tipo: 'RECEITA' as const, cor: '#34d399', icone: '✨' },
 ]
 
+async function seedUser(email: string, nome: string, senha: string, role: 'USER' | 'ADMIN', planStatus: 'TRIAL' | 'ACTIVE') {
+  const existing = await prisma.user.findUnique({ where: { email } })
+  if (existing) {
+    console.log(`ℹ️  Usuário já existe: ${email}`)
+    return existing
+  }
+  const passwordHash = await bcrypt.hash(senha, 12)
+  const user = await prisma.user.create({
+    data: { name: nome, email, password: passwordHash, role, planStatus },
+  })
+  for (const cat of CATEGORIAS_PADRAO) {
+    await prisma.categoria.create({ data: { userId: user.id, ...cat } })
+  }
+  return user
+}
+
 async function main() {
   console.log('🌱 Iniciando seed...')
 
-  // Create demo user if not exists
-  const demoEmail = 'demo@granify.app'
-  const existing = await prisma.user.findUnique({ where: { email: demoEmail } })
-  if (!existing) {
-    const passwordHash = await bcrypt.hash('demo123456', 12)
-    const demoUser = await prisma.user.create({
-      data: {
-        name: 'Usuário Demo',
-        email: demoEmail,
-        password: passwordHash,
-      },
-    })
+  // Admin user
+  const admin = await seedUser('admin@granify.net', 'Admin Granify', 'granify', 'ADMIN', 'ACTIVE')
+  if (admin) console.log('✅ Admin criado: admin@granify.net / granify')
 
-    // Create default categories for demo user
-    for (const cat of CATEGORIAS_PADRAO) {
-      await prisma.categoria.create({
-        data: { userId: demoUser.id, ...cat },
+  // Demo user
+  const demo = await seedUser('demo@granify.net', 'Usuário Demo', 'demo123456', 'USER', 'ACTIVE')
+  if (demo) {
+    const demoContaExists = await prisma.conta.findFirst({ where: { userId: demo.id } })
+    if (!demoContaExists) {
+      await prisma.conta.create({
+        data: {
+          userId: demo.id,
+          nome: 'Conta Corrente',
+          tipo: 'CORRENTE',
+          saldoInicial: 5000,
+          cor: '#10b981',
+          icone: '🏦',
+        },
       })
     }
-
-    // Create a demo account
-    await prisma.conta.create({
-      data: {
-        userId: demoUser.id,
-        nome: 'Conta Corrente',
-        tipo: 'CORRENTE',
-        saldoInicial: 5000,
-        cor: '#10b981',
-        icone: '🏦',
-      },
-    })
-
-    console.log(`✅ Usuário demo criado: ${demoEmail} / demo123456`)
-  } else {
-    console.log(`ℹ️  Usuário demo já existe: ${demoEmail}`)
+    console.log('✅ Demo criado: demo@granify.net / demo123456')
   }
 
   console.log('✅ Seed concluído.')

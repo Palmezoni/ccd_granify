@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { signToken, createSessionCookie } from '@/lib/auth'
+import { sendWelcomeEmail } from '@/lib/email'
 import { z } from 'zod'
 
 const schema = z.object({
@@ -34,6 +35,9 @@ export async function POST(req: NextRequest) {
 
     const token = await signToken({ userId: user.id, email: user.email, name: user.name })
     const cookie = createSessionCookie(token)
+
+    // Send welcome email async (non-blocking)
+    sendWelcomeEmail(email, name).catch(() => {})
 
     const res = NextResponse.json({ message: 'Conta criada com sucesso' }, { status: 201 })
     res.cookies.set(cookie)

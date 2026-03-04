@@ -21,6 +21,7 @@ model User {
   phone          String?
   locale         String     @default("pt-BR") // pt-BR, en, es
   currency       String     @default("BRL")
+  role           Role       @default(USER)
   planId         String?
   planStatus     PlanStatus @default(TRIAL)
   trialEndsAt    DateTime?
@@ -82,6 +83,11 @@ model PasswordReset {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  USER
+  ADMIN
 }
 
 enum PlanStatus {
