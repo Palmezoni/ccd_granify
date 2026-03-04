@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSessionFromRequest } from '@/lib/auth'
 
-const PUBLIC_PATHS = ['/', '/login', '/cadastro', '/login/recuperar-senha']
-const API_PUBLIC = ['/api/auth/login', '/api/auth/register', '/api/auth/recuperar-senha', '/api/auth/google']
+const PUBLIC_PATHS = ['/', '/login', '/cadastro', '/forgot-password', '/reset-password']
+const API_PUBLIC = ['/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/reset-password', '/api/auth/google']
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   // Rotas de API públicas — sem verificação
@@ -32,7 +32,7 @@ export async function middleware(req: NextRequest) {
   if (PUBLIC_PATHS.includes(pathname)) {
     const session = await getSessionFromRequest(req)
     // Se já está logado, redirecionar para o app
-    if (session && (pathname === '/login' || pathname === '/cadastro' || pathname === '/')) {
+    if (session && (pathname === '/login' || pathname === '/cadastro' || pathname === '/' || pathname === '/forgot-password' || pathname.startsWith('/reset-password'))) {
       return NextResponse.redirect(new URL('/dashboard', req.url))
     }
     return NextResponse.next()
