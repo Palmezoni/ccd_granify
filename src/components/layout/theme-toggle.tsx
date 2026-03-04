@@ -2,10 +2,10 @@
 import { useTheme, type Theme } from '@/components/providers/theme-provider'
 
 const THEMES: { id: Theme; label: string; style: React.CSSProperties }[] = [
-  { id: 'light',    label: 'Claro',      style: { background: '#f0fdf4' } },
-  { id: 'dark',     label: 'Escuro',     style: { background: '#1a2e1a' } },
-  { id: 'midnight', label: 'Meia-noite', style: { background: '#0a0e14' } },
-  { id: 'forest',   label: 'Floresta',   style: { background: 'linear-gradient(135deg, #064e3b, #0a1a0f)' } },
+  { id: 'light',   label: 'Claro',    style: { background: '#f8fafc' } },
+  { id: 'dark',    label: 'Escuro',   style: { background: '#1a2e1a' } },
+  { id: 'lilac',   label: 'Lilás',    style: { background: 'linear-gradient(135deg, #3b1f6e, #1a0d40)' } },
+  { id: 'sunrise', label: 'Sunrise',  style: { background: 'linear-gradient(135deg, #fde68a, #fbbf24)' } },
 ]
 
 export function ThemeToggle() {

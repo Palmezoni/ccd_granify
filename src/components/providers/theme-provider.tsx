@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 
-export type Theme = 'light' | 'dark' | 'midnight' | 'forest'
+export type Theme = 'light' | 'dark' | 'lilac' | 'sunrise'
 
 interface ThemeContextType {
   theme: Theme
@@ -12,13 +12,14 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType>({ theme: 'light', setTheme: () => {} })
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('light')
+  const [theme, setThemeState] = useState<Theme>('dark')
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
     const stored = localStorage.getItem('granify-theme') as Theme | null
-    const initial = stored || 'light'
+    const valid: Theme[] = ['light', 'dark', 'lilac', 'sunrise']
+    const initial = stored && valid.includes(stored) ? stored : 'dark'
     setThemeState(initial)
     document.documentElement.setAttribute('data-theme', initial)
   }, [])
@@ -29,7 +30,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.setAttribute('data-theme', t)
   }
 
-  if (!mounted) return <div style={{ visibility: 'hidden' }}>{children}</div>
+  if (!mounted) {
+    return (
+      <ThemeContext.Provider value={{ theme, setTheme }}>
+        <div style={{ visibility: 'hidden' }}>{children}</div>
+      </ThemeContext.Provider>
+    )
+  }
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>

@@ -1,0 +1,207 @@
+'use client'
+
+import { createContext, useContext, useEffect, useState } from 'react'
+
+export type Lang = 'pt' | 'en' | 'es'
+
+const translations = {
+  pt: {
+    'section.main': '',
+    'section.movimentacoes': 'MOVIMENTAÇÕES',
+    'section.financeiro': 'FINANCEIRO',
+    'section.relatorios': 'RELATÓRIOS',
+    'section.gerenciar': 'GERENCIAR',
+    'nav.dashboard': 'Dashboard',
+    'nav.movimentacoes': 'Movimentações',
+    'nav.lancamentos': 'Lançamentos',
+    'nav.fluxo': 'Fluxo de Caixa',
+    'nav.extrato': 'Extrato',
+    'nav.cartoes': 'Cartões',
+    'nav.metas': 'Metas',
+    'nav.orcamento': 'Orçamento',
+    'nav.poupanca': 'Poupança',
+    'nav.relatorios': 'Relatórios',
+    'nav.cadastros': 'Cadastros',
+    'nav.contas': 'Contas',
+    'nav.categorias': 'Categorias',
+    'nav.configuracoes': 'Configurações',
+    'nav.regras': 'Regras Automáticas',
+    'nav.tokens': 'Tokens de API',
+    'nav.atalhos': 'Atalhos',
+    'nav.admin': 'Admin',
+    'topbar.notifications': 'Notificações',
+    'topbar.noNotifs': 'Nenhuma notificação',
+    'topbar.markAllRead': 'Ler todas',
+    'topbar.settings': 'Configurações',
+    'topbar.adminPanel': 'Painel Admin',
+    'topbar.logout': 'Sair',
+    'shortcut.nova-conta': 'Nova Conta',
+    'shortcut.novo-lancamento': 'Novo Lançamento',
+    'shortcut.extrato': 'Extrato',
+    'shortcut.metas': 'Metas',
+    'shortcut.relatorios': 'Relatórios',
+    'shortcut.cartoes': 'Cartões',
+    'page.dashboard': 'Dashboard',
+    'page.extrato': 'Extrato',
+    'page.cartoes': 'Cartões',
+    'page.metas': 'Metas',
+    'page.relatorios': 'Relatórios',
+    'page.lancamentos': 'Lançamentos',
+    'page.fluxo': 'Fluxo de Caixa',
+    'page.contas': 'Contas',
+    'page.categorias': 'Categorias',
+    'page.configuracoes': 'Configurações',
+    'page.atalhos': 'Atalhos',
+    'page.admin': 'Painel Admin',
+    'atalhos.title': 'Atalhos Rápidos',
+    'atalhos.desc': 'Escolha quais atalhos aparecem na barra superior (máx. 5)',
+    'atalhos.save': 'Salvar',
+    'atalhos.saved': 'Salvo!',
+  },
+  en: {
+    'section.main': '',
+    'section.movimentacoes': 'TRANSACTIONS',
+    'section.financeiro': 'FINANCIAL',
+    'section.relatorios': 'REPORTS',
+    'section.gerenciar': 'MANAGE',
+    'nav.dashboard': 'Dashboard',
+    'nav.movimentacoes': 'Transactions',
+    'nav.lancamentos': 'Entries',
+    'nav.fluxo': 'Cash Flow',
+    'nav.extrato': 'Statement',
+    'nav.cartoes': 'Cards',
+    'nav.metas': 'Goals',
+    'nav.orcamento': 'Budget',
+    'nav.poupanca': 'Savings',
+    'nav.relatorios': 'Reports',
+    'nav.cadastros': 'Records',
+    'nav.contas': 'Accounts',
+    'nav.categorias': 'Categories',
+    'nav.configuracoes': 'Settings',
+    'nav.regras': 'Auto Rules',
+    'nav.tokens': 'API Tokens',
+    'nav.atalhos': 'Shortcuts',
+    'nav.admin': 'Admin',
+    'topbar.notifications': 'Notifications',
+    'topbar.noNotifs': 'No notifications',
+    'topbar.markAllRead': 'Mark all read',
+    'topbar.settings': 'Settings',
+    'topbar.adminPanel': 'Admin Panel',
+    'topbar.logout': 'Log out',
+    'shortcut.nova-conta': 'New Account',
+    'shortcut.novo-lancamento': 'New Entry',
+    'shortcut.extrato': 'Statement',
+    'shortcut.metas': 'Goals',
+    'shortcut.relatorios': 'Reports',
+    'shortcut.cartoes': 'Cards',
+    'page.dashboard': 'Dashboard',
+    'page.extrato': 'Statement',
+    'page.cartoes': 'Cards',
+    'page.metas': 'Goals',
+    'page.relatorios': 'Reports',
+    'page.lancamentos': 'Entries',
+    'page.fluxo': 'Cash Flow',
+    'page.contas': 'Accounts',
+    'page.categorias': 'Categories',
+    'page.configuracoes': 'Settings',
+    'page.atalhos': 'Shortcuts',
+    'page.admin': 'Admin Panel',
+    'atalhos.title': 'Quick Shortcuts',
+    'atalhos.desc': 'Choose which shortcuts appear in the top bar (max 5)',
+    'atalhos.save': 'Save',
+    'atalhos.saved': 'Saved!',
+  },
+  es: {
+    'section.main': '',
+    'section.movimentacoes': 'MOVIMIENTOS',
+    'section.financeiro': 'FINANCIERO',
+    'section.relatorios': 'INFORMES',
+    'section.gerenciar': 'GESTIONAR',
+    'nav.dashboard': 'Panel',
+    'nav.movimentacoes': 'Movimientos',
+    'nav.lancamentos': 'Registros',
+    'nav.fluxo': 'Flujo de Caja',
+    'nav.extrato': 'Extracto',
+    'nav.cartoes': 'Tarjetas',
+    'nav.metas': 'Metas',
+    'nav.orcamento': 'Presupuesto',
+    'nav.poupanca': 'Ahorro',
+    'nav.relatorios': 'Informes',
+    'nav.cadastros': 'Registros',
+    'nav.contas': 'Cuentas',
+    'nav.categorias': 'Categorías',
+    'nav.configuracoes': 'Configuración',
+    'nav.regras': 'Reglas Auto',
+    'nav.tokens': 'Tokens API',
+    'nav.atalhos': 'Atajos',
+    'nav.admin': 'Admin',
+    'topbar.notifications': 'Notificaciones',
+    'topbar.noNotifs': 'Sin notificaciones',
+    'topbar.markAllRead': 'Leer todas',
+    'topbar.settings': 'Configuración',
+    'topbar.adminPanel': 'Panel Admin',
+    'topbar.logout': 'Salir',
+    'shortcut.nova-conta': 'Nueva Cuenta',
+    'shortcut.novo-lancamento': 'Nuevo Registro',
+    'shortcut.extrato': 'Extracto',
+    'shortcut.metas': 'Metas',
+    'shortcut.relatorios': 'Informes',
+    'shortcut.cartoes': 'Tarjetas',
+    'page.dashboard': 'Panel',
+    'page.extrato': 'Extracto',
+    'page.cartoes': 'Tarjetas',
+    'page.metas': 'Metas',
+    'page.relatorios': 'Informes',
+    'page.lancamentos': 'Registros',
+    'page.fluxo': 'Flujo de Caja',
+    'page.contas': 'Cuentas',
+    'page.categorias': 'Categorías',
+    'page.configuracoes': 'Configuración',
+    'page.atalhos': 'Atajos',
+    'page.admin': 'Panel Admin',
+    'atalhos.title': 'Atajos Rápidos',
+    'atalhos.desc': 'Elige qué atajos aparecen en la barra superior (máx. 5)',
+    'atalhos.save': 'Guardar',
+    'atalhos.saved': '¡Guardado!',
+  },
+}
+
+type TranslationKey = keyof typeof translations.pt
+
+interface LangContextType {
+  lang: Lang
+  setLang: (l: Lang) => void
+  t: (key: TranslationKey) => string
+}
+
+const LangContext = createContext<LangContextType>({
+  lang: 'pt',
+  setLang: () => {},
+  t: (k) => k,
+})
+
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  const [lang, setLangState] = useState<Lang>('pt')
+
+  useEffect(() => {
+    const stored = localStorage.getItem('granify-lang') as Lang | null
+    if (stored && ['pt', 'en', 'es'].includes(stored)) setLangState(stored)
+  }, [])
+
+  const setLang = (l: Lang) => {
+    setLangState(l)
+    localStorage.setItem('granify-lang', l)
+  }
+
+  const t = (key: TranslationKey): string => {
+    return (translations[lang] as Record<string, string>)[key] ?? (translations.pt as Record<string, string>)[key] ?? key
+  }
+
+  return (
+    <LangContext.Provider value={{ lang, setLang, t }}>
+      {children}
+    </LangContext.Provider>
+  )
+}
+
+export const useLanguage = () => useContext(LangContext)

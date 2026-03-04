@@ -81,10 +81,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
-        <p className="mt-0.5 text-sm text-slate-500 capitalize">{monthName}</p>
-      </div>
+      <p className="text-sm text-muted-foreground capitalize">{monthName}</p>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
