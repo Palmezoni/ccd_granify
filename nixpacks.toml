@@ -1,2 +1,4 @@
+nixPkgsArchive = "fba7012cccf78b9b513604328d60e6f11125d350"
+
 [phases.setup]
-nixPkgs = ["openssl"]
+nixPkgs = ["nodejs_22", "nodePackages_latest.pnpm", "openssl"]
