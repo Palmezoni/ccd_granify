@@ -85,31 +85,23 @@ export async function POST(req: NextRequest) {
   }
 
   const { categoriaId, tipo, valor, mes, ano } = parsed.data
+  const userId = session.userId
 
-  // Upsert: update if exists, create if not
-  const meta = await prisma.meta.upsert({
-    where: {
-      userId_categoriaId_mes_ano_tipo: {
-        userId: session.userId,
-        categoriaId: categoriaId ?? null,
-        mes,
-        ano,
-        tipo,
-      },
-    },
-    update: { valor },
-    create: {
-      userId: session.userId,
-      categoriaId: categoriaId ?? null,
-      tipo,
-      valor,
-      mes,
-      ano,
-    },
-    include: {
-      categoria: { select: { id: true, nome: true, cor: true, icone: true, tipo: true } },
-    },
+  // findFirst + create/update to handle nullable categoriaId in compound unique
+  const existing = await prisma.meta.findFirst({
+    where: { userId, categoriaId: categoriaId ?? null, tipo, mes, ano },
   })
+
+  const meta = existing
+    ? await prisma.meta.update({
+        where: { id: existing.id },
+        data: { valor },
+        include: { categoria: { select: { id: true, nome: true, cor: true, icone: true, tipo: true } } },
+      })
+    : await prisma.meta.create({
+        data: { userId, categoriaId: categoriaId ?? null, tipo, valor, mes, ano },
+        include: { categoria: { select: { id: true, nome: true, cor: true, icone: true, tipo: true } } },
+      })
 
   return NextResponse.json({ data: meta }, { status: 201 })
 }
