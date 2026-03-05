@@ -110,7 +110,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const dataPagamento = action.dataPagamento ? new Date(action.dataPagamento) : new Date()
-    const contaId = action.contaId ?? fatura.cartao ? undefined : undefined
 
     // Compute total from lancamentos
     const lancamentos = await prisma.lancamento.findMany({

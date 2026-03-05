@@ -1023,6 +1023,11 @@ type Tab = 'orcamento' | 'poupanca'
 export default function MetasPage() {
   const [activeTab, setActiveTab] = useState<Tab>('orcamento')
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('tab') === 'poupanca') setActiveTab('poupanca')
+  }, [])
+
   return (
     <div className="space-y-6">
       {/* Tabs */}

@@ -167,7 +167,8 @@ async function main() {
 
   console.log('  Gerando lançamentos (Jan/2025 → Mar/2026)...')
 
-  const lancamentos: Parameters<typeof prisma.lancamento.createMany>[0]['data'] = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const lancamentos: any[] = []
 
   // Meses a gerar: Jan/2025 a Mar/2026
   const meses: { year: number; month: number }[] = []
