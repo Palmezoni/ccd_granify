@@ -27,11 +27,14 @@ import {
   GripVertical,
   Settings2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Check,
   X,
   BarChart3,
   PieChart,
   RefreshCw,
+  Calendar,
 } from 'lucide-react'
 import {
   BarChart,
@@ -139,6 +142,31 @@ function defaultPeriod() {
   }
 }
 
+// ─── Period presets ────────────────────────────────────────────────────────────
+
+type Preset = 'mes' | 'mes-ant' | '3m' | 'ano' | 'custom'
+
+/** Returns { inicio, fim } for a given 0-indexed month/year */
+function monthPeriod(m: number, a: number) {
+  const lastDay = new Date(a, m + 1, 0).getDate()
+  const mm = String(m + 1).padStart(2, '0')
+  return {
+    inicio: `${a}-${mm}-01`,
+    fim: `${a}-${mm}-${String(lastDay).padStart(2, '0')}`,
+  }
+}
+
+/** Compact label for a date range */
+function fmtPeriod(ini: string, fim: string) {
+  const i = new Date(ini + 'T00:00:00')
+  const f = new Date(fim + 'T00:00:00')
+  if (i.getFullYear() === f.getFullYear() && i.getMonth() === f.getMonth())
+    return i.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+  if (i.getFullYear() === f.getFullYear())
+    return `${i.toLocaleDateString('pt-BR', { month: 'short' })} – ${f.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}`
+  return `${i.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })} – ${f.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })}`
+}
+
 // ─── Sortable widget wrapper ──────────────────────────────────────────────────
 
 function SortableWidget({ id, children }: { id: string; children: React.ReactNode }) {
@@ -170,9 +198,15 @@ function SortableWidget({ id, children }: { id: string; children: React.ReactNod
 
 export default function DashboardPage() {
   const period = defaultPeriod()
+  const _now = new Date()
 
   const [inicio, setInicio] = useState(period.inicio)
   const [fim, setFim] = useState(period.fim)
+
+  // Period preset state
+  const [activePreset, setActivePreset] = useState<Preset>('mes')
+  const [navMes, setNavMes] = useState(_now.getMonth()) // 0-indexed
+  const [navAno, setNavAno] = useState(_now.getFullYear())
 
   const [allContasOpcoes, setAllContasOpcoes] = useState<ContaData[]>([])
   const [contasSelecionadas, setContasSelecionadas] = useState<string[]>([])
@@ -301,6 +335,48 @@ export default function DashboardPage() {
     setShowPersonalizar(false)
   }
 
+  // ─── Period navigation ───────────────────────────────────────────────────────
+
+  function navMonth(dir: -1 | 1) {
+    let m = navMes + dir
+    let a = navAno
+    if (m < 0) { m = 11; a-- }
+    if (m > 11) { m = 0; a++ }
+    const p = monthPeriod(m, a)
+    setNavMes(m)
+    setNavAno(a)
+    setInicio(p.inicio)
+    setFim(p.fim)
+    setActivePreset('mes')
+  }
+
+  function applyPreset(preset: Preset) {
+    const now = new Date()
+    setActivePreset(preset)
+    if (preset === 'mes') {
+      setNavMes(now.getMonth())
+      setNavAno(now.getFullYear())
+      const p = monthPeriod(now.getMonth(), now.getFullYear())
+      setInicio(p.inicio)
+      setFim(p.fim)
+    } else if (preset === 'mes-ant') {
+      let m = now.getMonth() - 1, a = now.getFullYear()
+      if (m < 0) { m = 11; a-- }
+      const p = monthPeriod(m, a)
+      setInicio(p.inicio)
+      setFim(p.fim)
+    } else if (preset === '3m') {
+      const ini = new Date(now.getFullYear(), now.getMonth() - 2, 1)
+      const fim3 = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      setInicio(`${ini.getFullYear()}-${String(ini.getMonth() + 1).padStart(2, '0')}-01`)
+      setFim(`${fim3.getFullYear()}-${String(fim3.getMonth() + 1).padStart(2, '0')}-${String(fim3.getDate()).padStart(2, '0')}`)
+    } else if (preset === 'ano') {
+      setInicio(`${now.getFullYear()}-01-01`)
+      setFim(`${now.getFullYear()}-12-31`)
+    }
+    // 'custom': keep existing dates, just switch to manual mode
+  }
+
   // ─── Account select helpers ──────────────────────────────────────────────────
 
   const allSelected =
@@ -360,25 +436,84 @@ export default function DashboardPage() {
     <div className="space-y-5">
       {/* ── Filter Bar ── */}
       <div className="flex flex-wrap items-center gap-2">
-        {/* Period */}
-        <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 shadow-sm">
-          <span className="text-xs text-muted-foreground">De</span>
-          <input
-            type="date"
-            value={inicio}
-            onChange={(e) => setInicio(e.target.value)}
-            className="bg-transparent text-xs font-medium text-foreground outline-none"
-          />
-          <span className="text-xs text-muted-foreground">até</span>
-          <input
-            type="date"
-            value={fim}
-            onChange={(e) => setFim(e.target.value)}
-            className="bg-transparent text-xs font-medium text-foreground outline-none"
-          />
-        </div>
 
-        {/* Contas multi-select */}
+        {/* ─ 1. Period navigator / period summary ─ */}
+        {activePreset === 'mes' ? (
+          /* Month navigator pill */
+          <div className="flex items-center overflow-hidden rounded-lg border border-border bg-card shadow-sm text-xs">
+            <button
+              onClick={() => navMonth(-1)}
+              className="px-2.5 py-1.5 text-muted-foreground hover:bg-accent transition"
+              title="Mês anterior"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+            <span className="select-none px-2 py-1.5 min-w-[116px] text-center font-semibold text-foreground">
+              {(() => {
+                const s = new Date(navAno, navMes).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+                return s.charAt(0).toUpperCase() + s.slice(1)
+              })()}
+            </span>
+            <button
+              onClick={() => navMonth(1)}
+              className="px-2.5 py-1.5 text-muted-foreground hover:bg-accent transition"
+              title="Próximo mês"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : activePreset === 'custom' ? (
+          /* Custom date inputs */
+          <div className="flex items-center gap-1.5 rounded-lg border border-primary/50 bg-card px-3 py-1.5 shadow-sm">
+            <span className="text-xs text-muted-foreground">De</span>
+            <input
+              type="date"
+              value={inicio}
+              onChange={(e) => setInicio(e.target.value)}
+              className="bg-transparent text-xs font-medium text-foreground outline-none"
+            />
+            <span className="text-xs text-muted-foreground">até</span>
+            <input
+              type="date"
+              value={fim}
+              onChange={(e) => setFim(e.target.value)}
+              className="bg-transparent text-xs font-medium text-foreground outline-none"
+            />
+          </div>
+        ) : (
+          /* Period summary pill for other presets */
+          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 shadow-sm">
+            <Calendar className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+            <span className="text-xs font-medium text-foreground">
+              {(() => { const s = fmtPeriod(inicio, fim); return s.charAt(0).toUpperCase() + s.slice(1) })()}
+            </span>
+          </div>
+        )}
+
+        {/* ─ 2. Preset chips ─ */}
+        {(
+          [
+            { id: 'mes',     label: 'Este mês'      },
+            { id: 'mes-ant', label: 'Mês ant.'       },
+            { id: '3m',      label: 'Últ. 3 meses'  },
+            { id: 'ano',     label: 'Este ano'       },
+            { id: 'custom',  label: 'Personalizado'  },
+          ] as { id: Preset; label: string }[]
+        ).map(({ id, label }) => (
+          <button
+            key={id}
+            onClick={() => applyPreset(id)}
+            className={`rounded-lg border px-3 py-1.5 text-xs font-medium shadow-sm transition ${
+              activePreset === id
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border bg-card text-foreground hover:bg-accent'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+
+        {/* ─ 3. Contas multi-select ─ */}
         {allContasOpcoes.length > 0 && (
           <div className="relative" ref={contasDropdownRef}>
             <button
@@ -392,16 +527,13 @@ export default function DashboardPage() {
 
             {showContasDropdown && (
               <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-border bg-card py-1 shadow-xl">
-                {/* Select all */}
                 <button
                   onClick={toggleAll}
                   className="flex w-full items-center gap-2 px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-accent"
                 >
                   <div
                     className={`flex h-4 w-4 items-center justify-center rounded border ${
-                      allSelected
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border'
+                      allSelected ? 'border-primary bg-primary text-primary-foreground' : 'border-border'
                     }`}
                   >
                     {allSelected && <Check className="h-2.5 w-2.5" />}
@@ -436,18 +568,16 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* ─ 4. Right controls ─ */}
         <div className="ml-auto flex items-center gap-2">
-          {/* Refresh */}
           <button
             onClick={() => fetchData(true)}
             disabled={refreshing}
             className="flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-muted-foreground shadow-sm transition hover:bg-accent disabled:opacity-50"
-            title="Atualizar"
+            title="Atualizar dados"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
-
-          {/* PERSONALIZAR */}
           <button
             onClick={openPersonalizar}
             className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition hover:bg-accent"
