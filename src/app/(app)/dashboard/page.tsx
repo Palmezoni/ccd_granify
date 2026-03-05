@@ -557,7 +557,7 @@ function KpisWidget({ data }: { data: DashboardData }) {
         value={formatCurrency(kpis.saldoTotal)}
         icon={<Wallet className="h-4 w-4" />}
         color="emerald"
-        subtitle={`${data.contas.filter((c) => c.incluirTotal).length} conta(s)`}
+        subtitle="saldo atual das contas"
       />
       <KpiCard
         title="Receitas"
