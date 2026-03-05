@@ -187,7 +187,13 @@ export default function DashboardPage() {
   const [refreshing, setRefreshing] = useState(false)
 
   const contasDropdownRef = useRef<HTMLDivElement>(null)
-  const isFirstRender = useRef(true)
+  // skipFilterRef: skip the 2 automatic triggers (mount + initial contas load)
+  // so only user-initiated changes cause a re-fetch
+  const skipFilterRef = useRef(2)
+
+  // stateRef always holds current values → fetchData reads from it (no stale closure)
+  const stateRef = useRef({ inicio, fim, contasSelecionadas, allContasOpcoes })
+  stateRef.current = { inicio, fim, contasSelecionadas, allContasOpcoes }
 
   // Load widgets from localStorage on mount
   useEffect(() => {
@@ -210,31 +216,27 @@ export default function DashboardPage() {
 
   // ─── Fetch ──────────────────────────────────────────────────────────────────
 
-  const fetchData = useCallback(
-    async (silent = false) => {
-      if (!silent) setLoading(true)
-      else setRefreshing(true)
-      try {
-        const params = new URLSearchParams({ inicio, fim })
-        if (
-          contasSelecionadas.length > 0 &&
-          allContasOpcoes.length > 0 &&
-          contasSelecionadas.length < allContasOpcoes.length
-        ) {
-          params.set('contas', contasSelecionadas.join(','))
-        }
-        const res = await fetch(`/api/dashboard/stats?${params}`)
-        if (res.ok) {
-          const json = await res.json()
-          setData(json)
-        }
-      } finally {
-        setLoading(false)
-        setRefreshing(false)
+  // Stable callback — always reads latest values via stateRef (never stale)
+  const fetchData = useCallback(async (silent = false) => {
+    const { inicio: i, fim: f, contasSelecionadas: cs, allContasOpcoes: ao } = stateRef.current
+    if (!silent) setLoading(true)
+    else setRefreshing(true)
+    try {
+      const params = new URLSearchParams({ inicio: i, fim: f })
+      if (cs.length > 0 && ao.length > 0 && cs.length < ao.length) {
+        params.set('contas', cs.join(','))
       }
-    },
-    [inicio, fim, contasSelecionadas, allContasOpcoes],
-  )
+      const res = await fetch(`/api/dashboard/stats?${params}`)
+      if (res.ok) {
+        const json = await res.json()
+        setData(json)
+      }
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // stable — never needs to change; reads latest via stateRef
 
   // Initial load
   useEffect(() => {
@@ -257,15 +259,14 @@ export default function DashboardPage() {
     init()
   }, [])
 
-  // Re-fetch on filter change (skip first render)
+  // Re-fetch on filter change — skip the 2 automatic triggers (mount + initial contas set)
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false
+    if (skipFilterRef.current > 0) {
+      skipFilterRef.current -= 1
       return
     }
     fetchData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inicio, fim, contasSelecionadas])
+  }, [inicio, fim, contasSelecionadas, fetchData])
 
   // ─── DnD ────────────────────────────────────────────────────────────────────
 
