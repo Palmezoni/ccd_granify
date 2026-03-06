@@ -17,6 +17,14 @@ const API_PUBLIC = [
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
+  // Helper — NextResponse.next() com x-pathname injetado nos headers
+  // Permite que Server Components (ex: AppLayout) leiam o pathname atual
+  function nextWithPathname(): NextResponse {
+    const res = NextResponse.next()
+    res.headers.set('x-pathname', pathname)
+    return res
+  }
+
   // Rotas de API públicas — sem verificação
   if (API_PUBLIC.some((p) => pathname.startsWith(p))) {
     return NextResponse.next()
@@ -38,9 +46,9 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next()
   }
 
-  // Rotas públicas (prefix-based)
+  // Rotas públicas (prefix-based) — /assinar/* é acessível sem login
   if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
-    return NextResponse.next()
+    return nextWithPathname()
   }
 
   // Rotas públicas
@@ -50,7 +58,7 @@ export async function proxy(req: NextRequest) {
     if (session && (pathname === '/login' || pathname === '/cadastro' || pathname === '/' || pathname === '/forgot-password' || pathname.startsWith('/reset-password'))) {
       return NextResponse.redirect(new URL('/dashboard', req.url))
     }
-    return NextResponse.next()
+    return nextWithPathname()
   }
 
   // Rotas protegidas do app
@@ -59,7 +67,7 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
-  return NextResponse.next()
+  return nextWithPathname()
 }
 
 export const config = {

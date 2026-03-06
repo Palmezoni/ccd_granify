@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Sidebar } from '@/components/layout/sidebar'
@@ -130,6 +131,12 @@ function TrialBanner({ daysLeft }: { daysLeft: number }) {
 // ─── Layout principal ─────────────────────────────────────────────────────────
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  // Read the current pathname injected by middleware
+  // so we can bypass the upgrade wall for the /assinar/* checkout pages
+  const headersList = await headers()
+  const currentPath = headersList.get('x-pathname') ?? ''
+  const isCheckoutPage = currentPath.startsWith('/assinar')
+
   const session = await getSession()
   if (!session) redirect('/login')
 
@@ -152,8 +159,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const now = new Date()
 
-  // Trial expired → show upgrade wall
+  // Trial expired → show upgrade wall (bypass for checkout pages)
   if (
+    !isCheckoutPage &&
     tenant?.planStatus === 'TRIAL' &&
     tenant.trialEndsAt &&
     tenant.trialEndsAt < now
@@ -161,8 +169,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     return <UpgradeWall userName={user.name} />
   }
 
-  // Suspended → show suspended notice
-  if (tenant?.planStatus === 'SUSPENDED') {
+  // Suspended → show suspended notice (bypass for checkout pages)
+  if (!isCheckoutPage && tenant?.planStatus === 'SUSPENDED') {
     return <SuspendedNotice userName={user.name} />
   }
 
