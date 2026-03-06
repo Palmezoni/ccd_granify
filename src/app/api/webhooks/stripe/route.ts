@@ -27,7 +27,9 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
-        const { tenantId, plan } = (session.subscription_data?.metadata || {}) as Record<string, string>
+        // metadata is set directly on the session when creating the checkout
+        const metadata = (session.metadata || {}) as Record<string, string>
+        const { tenantId, plan } = metadata
         if (tenantId) {
           await prisma.tenant.update({
             where: { id: tenantId },
