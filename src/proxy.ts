@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSessionFromRequest } from '@/lib/auth'
 
 const PUBLIC_PATHS = ['/', '/login', '/cadastro', '/forgot-password', '/reset-password']
-const PUBLIC_PREFIXES = ['/assinar/']
+const PUBLIC_PREFIXES = ['/assinar/', '/upgrade']
 const API_PUBLIC = [
   '/api/auth/login',
   '/api/auth/register',

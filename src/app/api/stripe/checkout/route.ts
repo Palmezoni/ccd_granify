@@ -30,6 +30,23 @@ export async function POST(req: NextRequest) {
   // Usa stripeCustomerId existente ou cria novo
   let customerId = user.tenant?.stripeCustomerId
 
+  if (customerId) {
+    // Verify the customer still exists in Stripe (avoids "No such customer" errors in test mode)
+    try {
+      await stripe.customers.retrieve(customerId)
+    } catch {
+      // Customer doesn't exist — clear it and create a fresh one below
+      console.warn('[stripe/checkout] Stale customerId, creating new customer:', customerId)
+      customerId = undefined
+      if (user.tenantId) {
+        await prisma.tenant.update({
+          where: { id: user.tenantId },
+          data: { stripeCustomerId: null },
+        })
+      }
+    }
+  }
+
   if (!customerId) {
     const customer = await stripe.customers.create({
       email: user.email,
@@ -46,25 +63,31 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const checkoutSession = await stripe.checkout.sessions.create({
-    customer: customerId,
-    payment_method_types: ['card'],
-    line_items: [{ price: PLANS[plan].priceId, quantity: 1 }],
-    mode: 'subscription',
-    // metadata at session level for checkout.session.completed webhook:
-    metadata: {
-      userId: user.id,
-      tenantId: user.tenantId || '',
-      plan,
-    },
-    success_url: `${APP_URL}/dashboard?payment=success`,
-    cancel_url: `${APP_URL}/#planos`,
-    allow_promotion_codes: true,
-    subscription_data: {
-      metadata: { userId: user.id, tenantId: user.tenantId || '', plan },
-    },
-    locale: 'pt-BR',
-  })
+  try {
+    const checkoutSession = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [{ price: PLANS[plan].priceId, quantity: 1 }],
+      mode: 'subscription',
+      // metadata at session level for checkout.session.completed webhook:
+      metadata: {
+        userId: user.id,
+        tenantId: user.tenantId || '',
+        plan,
+      },
+      success_url: `${APP_URL}/dashboard?payment=success`,
+      cancel_url: `${APP_URL}/#planos`,
+      allow_promotion_codes: true,
+      subscription_data: {
+        metadata: { userId: user.id, tenantId: user.tenantId || '', plan },
+      },
+      locale: 'pt-BR',
+    })
 
-  return NextResponse.json({ url: checkoutSession.url })
+    return NextResponse.json({ url: checkoutSession.url })
+  } catch (err) {
+    console.error('[stripe/checkout] Stripe error:', err)
+    const message = err instanceof Error ? err.message : 'Erro ao criar sessão de pagamento'
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 }
