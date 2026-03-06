@@ -64,7 +64,12 @@ function LoginForm() {
           // fall through to dashboard
         }
       }
-      router.push('/dashboard')
+      const redirectParam = searchParams.get('redirect')
+      if (redirectParam && redirectParam.startsWith('/')) {
+        router.push(redirectParam)
+      } else {
+        router.push('/dashboard')
+      }
       router.refresh()
     } catch {
       setError('Erro de conexão. Tente novamente.')

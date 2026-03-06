@@ -50,7 +50,12 @@ export async function proxy(req: NextRequest) {
   // Rotas protegidas do app
   const session = await getSessionFromRequest(req)
   if (!session) {
-    return NextResponse.redirect(new URL('/login', req.url))
+    // Para /assinar/* preservar o destino como redirect param no login
+    const loginUrl = new URL('/login', req.url)
+    if (pathname.startsWith('/assinar/')) {
+      loginUrl.searchParams.set('redirect', pathname)
+    }
+    return NextResponse.redirect(loginUrl)
   }
 
   return NextResponse.next()

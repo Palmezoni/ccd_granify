@@ -258,7 +258,7 @@ export default async function RootPage() {
                 ))}
               </ul>
               <Link
-                href="/login?plan=monthly"
+                href="/assinar/monthly"
                 className="block rounded-xl border border-emerald-600 px-6 py-3 text-center text-sm font-semibold text-emerald-600 transition hover:bg-emerald-50"
               >
                 Começar agora
@@ -301,7 +301,7 @@ export default async function RootPage() {
                 ))}
               </ul>
               <Link
-                href="/login?plan=semiannual"
+                href="/assinar/semiannual"
                 className="block rounded-xl bg-emerald-600 px-6 py-3 text-center text-sm font-bold text-white shadow-md shadow-emerald-200 transition hover:bg-emerald-700"
               >
                 Começar agora
@@ -339,7 +339,7 @@ export default async function RootPage() {
                 ))}
               </ul>
               <Link
-                href="/login?plan=annual"
+                href="/assinar/annual"
                 className="block rounded-xl border border-violet-600 px-6 py-3 text-center text-sm font-semibold text-violet-600 transition hover:bg-violet-50"
               >
                 Começar agora
