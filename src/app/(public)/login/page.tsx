@@ -165,16 +165,6 @@ function LoginForm() {
               Continuar com Microsoft
             </a>
 
-            {/* Apple */}
-            <a
-              href="/api/auth/oauth/apple"
-              className="flex w-full items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
-            >
-              <svg className="h-4 w-4 shrink-0" viewBox="0 0 814 1000" aria-hidden="true">
-                <path fill="currentColor" d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 376.8 0 234.4 0 199.3c0-159 129.1-245.5 256.4-245.5 82 0 150.9 50.4 198.2 50.4 44.6 0 125.6-53.4 215.1-53.4 34.5 0 121.7 3.2 188.1 95.2zm-166.7-176.5c39.5-47.3 67.5-112.6 67.5-177.9 0-9-0.6-18-2.3-25.6-63.5 2.9-140.8 42.8-187.4 97.5-35.8 39.5-72.7 104.8-72.7 171.5 0 9.6 1.6 19.2 2.3 22.4 4.5 0.6 11.6 1.9 18.7 1.9 56.2 0 127.1-38.2 173.9-89.8z"/>
-              </svg>
-              Continuar com Apple
-            </a>
           </div>
 
           <p className="mt-6 text-center text-sm text-slate-500">
