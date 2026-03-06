@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSessionFromRequest } from '@/lib/auth'
 
 const PUBLIC_PATHS = ['/', '/login', '/cadastro', '/forgot-password', '/reset-password']
+const PUBLIC_PREFIXES = ['/assinar/']
 const API_PUBLIC = [
   '/api/auth/login',
   '/api/auth/register',
@@ -37,6 +38,11 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next()
   }
 
+  // Rotas públicas (prefix-based)
+  if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next()
+  }
+
   // Rotas públicas
   if (PUBLIC_PATHS.includes(pathname)) {
     const session = await getSessionFromRequest(req)
@@ -50,12 +56,7 @@ export async function proxy(req: NextRequest) {
   // Rotas protegidas do app
   const session = await getSessionFromRequest(req)
   if (!session) {
-    // Para /assinar/* preservar o destino como redirect param no login
-    const loginUrl = new URL('/login', req.url)
-    if (pathname.startsWith('/assinar/')) {
-      loginUrl.searchParams.set('redirect', pathname)
-    }
-    return NextResponse.redirect(loginUrl)
+    return NextResponse.redirect(new URL('/login', req.url))
   }
 
   return NextResponse.next()
