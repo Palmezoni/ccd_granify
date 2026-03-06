@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth'
 import Link from 'next/link'
 import {
   TrendingUp, CreditCard, Target, BarChart3, ArrowRight,
-  CheckCircle, Wallet, Shield, Zap, Star, Menu
+  CheckCircle, Wallet, Shield, Zap, Star, Check
 } from 'lucide-react'
 
 export default async function RootPage() {
@@ -26,6 +26,7 @@ export default async function RootPage() {
           <nav className="hidden items-center gap-8 sm:flex">
             <a href="#recursos" className="text-sm font-medium text-slate-600 transition hover:text-emerald-600">Recursos</a>
             <a href="#como-funciona" className="text-sm font-medium text-slate-600 transition hover:text-emerald-600">Como funciona</a>
+            <a href="#planos" className="text-sm font-medium text-slate-600 transition hover:text-emerald-600">Planos</a>
             <a href="#depoimentos" className="text-sm font-medium text-slate-600 transition hover:text-emerald-600">Depoimentos</a>
           </nav>
           <div className="flex items-center gap-3">
@@ -221,8 +222,142 @@ export default async function RootPage() {
         </div>
       </section>
 
+      {/* Pricing */}
+      <section id="planos" className="px-4 py-20">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-4 text-center">
+            <h2 className="text-4xl font-black text-slate-900">Planos simples, preço justo</h2>
+            <p className="mt-4 text-slate-600">Cancele quando quiser. Sem taxas ocultas.</p>
+          </div>
+
+          <div className="mt-12 grid gap-6 sm:grid-cols-3">
+            {/* Plano Mensal */}
+            <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+              <div className="mb-6">
+                <div className="mb-1 text-sm font-semibold uppercase tracking-widest text-slate-500">Mensal</div>
+                <div className="flex items-end gap-1">
+                  <span className="text-4xl font-black text-slate-900">R$ 29,90</span>
+                  <span className="mb-1 text-slate-500">/mês</span>
+                </div>
+                <p className="mt-1 text-sm text-slate-500">cobrado mensalmente</p>
+              </div>
+              <ul className="mb-8 flex flex-col gap-3 flex-1">
+                {[
+                  'Contas ilimitadas',
+                  'Cartões de crédito',
+                  'Lançamentos e recorrências',
+                  'Metas e orçamentos',
+                  'Relatórios PDF e Excel',
+                  'Regras automáticas',
+                  'Suporte por e-mail',
+                ].map(f => (
+                  <li key={f} className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="h-4 w-4 shrink-0 text-emerald-500" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/login?plan=monthly"
+                className="block rounded-xl border border-emerald-600 px-6 py-3 text-center text-sm font-semibold text-emerald-600 transition hover:bg-emerald-50"
+              >
+                Começar agora
+              </Link>
+            </div>
+
+            {/* Plano Semestral — Mais popular */}
+            <div className="relative flex flex-col rounded-2xl border-2 border-emerald-600 bg-white p-8 shadow-xl shadow-emerald-100">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                <span className="rounded-full bg-emerald-600 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-white shadow-lg">
+                  Mais popular
+                </span>
+              </div>
+              <div className="mb-6">
+                <div className="flex items-center gap-2">
+                  <div className="mb-1 text-sm font-semibold uppercase tracking-widest text-slate-500">Semestral</div>
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">-20%</span>
+                </div>
+                <div className="flex items-end gap-1">
+                  <span className="text-4xl font-black text-slate-900">R$ 23,92</span>
+                  <span className="mb-1 text-slate-500">/mês</span>
+                </div>
+                <p className="mt-1 text-sm text-slate-500">R$ 143,52 cobrado a cada 6 meses</p>
+              </div>
+              <ul className="mb-8 flex flex-col gap-3 flex-1">
+                {[
+                  'Contas ilimitadas',
+                  'Cartões de crédito',
+                  'Lançamentos e recorrências',
+                  'Metas e orçamentos',
+                  'Relatórios PDF e Excel',
+                  'Regras automáticas',
+                  'Suporte prioritário',
+                  'Economia de R$ 35,88/ano',
+                ].map(f => (
+                  <li key={f} className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="h-4 w-4 shrink-0 text-emerald-500" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/login?plan=semiannual"
+                className="block rounded-xl bg-emerald-600 px-6 py-3 text-center text-sm font-bold text-white shadow-md shadow-emerald-200 transition hover:bg-emerald-700"
+              >
+                Começar agora
+              </Link>
+            </div>
+
+            {/* Plano Anual */}
+            <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+              <div className="mb-6">
+                <div className="flex items-center gap-2">
+                  <div className="mb-1 text-sm font-semibold uppercase tracking-widest text-slate-500">Anual</div>
+                  <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-bold text-violet-700">-30%</span>
+                </div>
+                <div className="flex items-end gap-1">
+                  <span className="text-4xl font-black text-slate-900">R$ 20,93</span>
+                  <span className="mb-1 text-slate-500">/mês</span>
+                </div>
+                <p className="mt-1 text-sm text-slate-500">R$ 251,16 cobrado anualmente</p>
+              </div>
+              <ul className="mb-8 flex flex-col gap-3 flex-1">
+                {[
+                  'Contas ilimitadas',
+                  'Cartões de crédito',
+                  'Lançamentos e recorrências',
+                  'Metas e orçamentos',
+                  'Relatórios PDF e Excel',
+                  'Regras automáticas',
+                  'Suporte prioritário',
+                  'Economia de R$ 107,64/ano',
+                ].map(f => (
+                  <li key={f} className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="h-4 w-4 shrink-0 text-emerald-500" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/login?plan=annual"
+                className="block rounded-xl border border-violet-600 px-6 py-3 text-center text-sm font-semibold text-violet-600 transition hover:bg-violet-50"
+              >
+                Começar agora
+              </Link>
+            </div>
+          </div>
+
+          <p className="mt-8 text-center text-sm text-slate-500">
+            Comece de graça com o plano gratuito —{' '}
+            <Link href="/cadastro" className="font-semibold text-emerald-600 underline underline-offset-2 hover:text-emerald-700">
+              sem cartão de crédito
+            </Link>
+          </p>
+        </div>
+      </section>
+
       {/* Testimonials */}
-      <section id="depoimentos" className="px-4 py-20">
+      <section id="depoimentos" className="bg-slate-50 px-4 py-20">
         <div className="mx-auto max-w-5xl">
           <div className="mb-16 text-center">
             <h2 className="text-4xl font-black text-slate-900">O que dizem nossos usuários</h2>
@@ -283,6 +418,7 @@ export default async function RootPage() {
               <span className="font-black text-emerald-700">Granify</span>
             </div>
             <div className="flex gap-6 text-sm text-slate-500">
+              <a href="#planos" className="hover:text-emerald-600">Planos</a>
               <Link href="/login" className="hover:text-emerald-600">Entrar</Link>
               <Link href="/cadastro" className="hover:text-emerald-600">Cadastrar</Link>
               <a href="mailto:suporte@granify.net" className="hover:text-emerald-600">Suporte</a>
