@@ -2,7 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSessionFromRequest } from '@/lib/auth'
 
 const PUBLIC_PATHS = ['/', '/login', '/cadastro', '/forgot-password', '/reset-password']
-const API_PUBLIC = ['/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/reset-password', '/api/auth/google']
+const API_PUBLIC = [
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/api/auth/oauth/',      // inicia fluxo OAuth (google, microsoft, apple)
+  '/api/auth/callback/',   // callback OAuth após autenticação no provider
+  '/api/health',
+]
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
