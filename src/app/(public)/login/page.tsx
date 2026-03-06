@@ -46,6 +46,24 @@ function LoginForm() {
         return
       }
 
+      // After successful login, check for plan redirect
+      const planParam = searchParams.get('plan')
+      if (planParam && ['monthly', 'semiannual', 'annual'].includes(planParam)) {
+        try {
+          const checkoutRes = await fetch('/api/stripe/checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plan: planParam }),
+          })
+          const checkoutData = await checkoutRes.json()
+          if (checkoutData.url) {
+            window.location.href = checkoutData.url
+            return
+          }
+        } catch {
+          // fall through to dashboard
+        }
+      }
       router.push('/dashboard')
       router.refresh()
     } catch {

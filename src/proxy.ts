@@ -10,6 +10,7 @@ const API_PUBLIC = [
   '/api/auth/oauth/',      // inicia fluxo OAuth (google, microsoft, apple)
   '/api/auth/callback/',   // callback OAuth após autenticação no provider
   '/api/health',
+  '/api/webhooks/stripe',  // webhook Stripe — não usa nossa autenticação
 ]
 
 export async function proxy(req: NextRequest) {
