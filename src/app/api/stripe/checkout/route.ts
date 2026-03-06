@@ -51,6 +51,12 @@ export async function POST(req: NextRequest) {
     payment_method_types: ['card'],
     line_items: [{ price: PLANS[plan].priceId, quantity: 1 }],
     mode: 'subscription',
+    // metadata at session level for checkout.session.completed webhook:
+    metadata: {
+      userId: user.id,
+      tenantId: user.tenantId || '',
+      plan,
+    },
     success_url: `${APP_URL}/dashboard?payment=success`,
     cancel_url: `${APP_URL}/#planos`,
     allow_promotion_codes: true,

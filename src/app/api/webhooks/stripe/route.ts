@@ -27,9 +27,16 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
-        // metadata is set directly on the session when creating the checkout
         const metadata = (session.metadata || {}) as Record<string, string>
-        const { tenantId, plan } = metadata
+        let { tenantId, plan } = metadata
+
+        // Fallback: if metadata not on session, fetch subscription metadata
+        if (!tenantId && session.subscription) {
+          const subscription = await stripe.subscriptions.retrieve(session.subscription as string)
+          tenantId = subscription.metadata?.tenantId || ''
+          plan = subscription.metadata?.plan || ''
+        }
+
         if (tenantId) {
           await prisma.tenant.update({
             where: { id: tenantId },
@@ -39,8 +46,10 @@ export async function POST(req: NextRequest) {
               stripeSubscriptionId: session.subscription as string,
             },
           })
+          console.log(`✅ Tenant ${tenantId} activated (plan: ${plan})`)
+        } else {
+          console.warn('⚠️ checkout.session.completed: no tenantId in metadata', session.id)
         }
-        void plan // used in metadata only
         break
       }
 
