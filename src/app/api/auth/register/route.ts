@@ -60,12 +60,16 @@ export async function POST(req: NextRequest) {
     const baseSlug = generateSlug(email)
     const slug = await uniqueSlug(baseSlug)
 
+    const trialEndsAt = new Date()
+    trialEndsAt.setDate(trialEndsAt.getDate() + 7)
+
     const tenant = await prisma.tenant.create({
       data: {
         nome: name,
         slug,
         plano: 'free',
         planStatus: 'TRIAL',
+        trialEndsAt,
         membros: { connect: { id: user.id } },
       },
     })

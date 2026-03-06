@@ -108,7 +108,7 @@ async function findOrCreateOAuthUser(
 
   // 3. Novo usuário → cria User + Tenant + Account
   const trialEndsAt = new Date()
-  trialEndsAt.setDate(trialEndsAt.getDate() + 14)
+  trialEndsAt.setDate(trialEndsAt.getDate() + 7)
 
   const slug = await uniqueSlug(generateSlug(userInfo.email))
 

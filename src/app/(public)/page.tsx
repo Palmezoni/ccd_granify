@@ -1,5 +1,3 @@
-import { redirect } from 'next/navigation'
-import { getSession } from '@/lib/auth'
 import Link from 'next/link'
 import {
   TrendingUp, CreditCard, Target, BarChart3, ArrowRight,
@@ -7,11 +5,6 @@ import {
 } from 'lucide-react'
 
 export default async function RootPage() {
-  const session = await getSession()
-  if (session) {
-    redirect('/dashboard')
-  }
-
   return (
     <div className="min-h-screen bg-white">
       {/* Nav */}
@@ -348,9 +341,9 @@ export default async function RootPage() {
           </div>
 
           <p className="mt-8 text-center text-sm text-slate-500">
-            Comece de graça com o plano gratuito —{' '}
+            Ou comece com 7 dias grátis →{' '}
             <Link href="/cadastro" className="font-semibold text-emerald-600 underline underline-offset-2 hover:text-emerald-700">
-              sem cartão de crédito
+              Criar conta gratuita
             </Link>
           </p>
         </div>
