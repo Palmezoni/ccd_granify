@@ -1,17 +1,32 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, TrendingUp, Loader2 } from 'lucide-react'
 
-export default function LoginPage() {
+// Mapa de mensagens de erro OAuth
+const OAUTH_ERRORS: Record<string, string> = {
+  invalid_state: 'Sessão expirada. Tente novamente.',
+  no_email: 'Não foi possível obter seu e-mail do provedor.',
+  no_code: 'Autorização cancelada ou inválida.',
+  no_tenant: 'Erro ao configurar sua conta. Contate o suporte.',
+  oauth_failed: 'Falha na autenticação social. Tente novamente.',
+  access_denied: 'Acesso negado pelo provedor.',
+}
+
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const oauthError = searchParams.get('error')
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(
+    oauthError ? (OAUTH_ERRORS[oauthError] ?? 'Erro na autenticação. Tente novamente.') : ''
+  )
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -113,25 +128,54 @@ export default function LoginPage() {
             </button>
           </form>
 
+          {/* Divisor */}
           <div className="mt-4 flex items-center gap-3">
             <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-            <span className="text-xs text-slate-400">ou</span>
+            <span className="text-xs text-slate-400">ou entre com</span>
             <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
           </div>
 
-          <button
-            type="button"
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
-            onClick={() => alert('Login com Google em breve. Use e-mail e senha por enquanto.')}
-          >
-            <svg className="h-4 w-4" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-            Entrar com Google
-          </button>
+          {/* Botões OAuth */}
+          <div className="mt-4 flex flex-col gap-3">
+            {/* Google */}
+            <a
+              href="/api/auth/oauth/google"
+              className="flex w-full items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+            >
+              <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              Continuar com Google
+            </a>
+
+            {/* Microsoft */}
+            <a
+              href="/api/auth/oauth/microsoft"
+              className="flex w-full items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+            >
+              <svg className="h-4 w-4 shrink-0" viewBox="0 0 23 23" aria-hidden="true">
+                <rect x="1" y="1" width="10" height="10" fill="#F25022"/>
+                <rect x="12" y="1" width="10" height="10" fill="#7FBA00"/>
+                <rect x="1" y="12" width="10" height="10" fill="#00A4EF"/>
+                <rect x="12" y="12" width="10" height="10" fill="#FFB900"/>
+              </svg>
+              Continuar com Microsoft
+            </a>
+
+            {/* Apple */}
+            <a
+              href="/api/auth/oauth/apple"
+              className="flex w-full items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+            >
+              <svg className="h-4 w-4 shrink-0" viewBox="0 0 814 1000" aria-hidden="true">
+                <path fill="currentColor" d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 376.8 0 234.4 0 199.3c0-159 129.1-245.5 256.4-245.5 82 0 150.9 50.4 198.2 50.4 44.6 0 125.6-53.4 215.1-53.4 34.5 0 121.7 3.2 188.1 95.2zm-166.7-176.5c39.5-47.3 67.5-112.6 67.5-177.9 0-9-0.6-18-2.3-25.6-63.5 2.9-140.8 42.8-187.4 97.5-35.8 39.5-72.7 104.8-72.7 171.5 0 9.6 1.6 19.2 2.3 22.4 4.5 0.6 11.6 1.9 18.7 1.9 56.2 0 127.1-38.2 173.9-89.8z"/>
+              </svg>
+              Continuar com Apple
+            </a>
+          </div>
 
           <p className="mt-6 text-center text-sm text-slate-500">
             Não tem conta?{' '}
@@ -142,5 +186,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   )
 }
