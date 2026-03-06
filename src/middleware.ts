@@ -1,5 +1,6 @@
 // src/middleware.ts — Granify
-// Protege rotas autenticadas e redireciona usuários já logados para o dashboard
+// Protege rotas de página autenticadas e redireciona usuários já logados
+// Nota: rotas /api/* têm sua própria autenticação em cada route handler — não bloqueadas aqui
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 
@@ -9,8 +10,8 @@ const SECRET = new TextEncoder().encode(
 
 const COOKIE_NAME = 'granify_session'
 
-// Rotas de página que exigem autenticação
-const PROTECTED_PREFIXES = [
+// Prefixos de página que exigem sessão válida
+const PROTECTED_PAGE_PREFIXES = [
   '/dashboard',
   '/movimentacoes',
   '/extrato',
@@ -23,11 +24,8 @@ const PROTECTED_PREFIXES = [
   '/admin',
 ]
 
-// Rotas de API que exigem autenticação (qualquer /api/* que não seja pública)
-const PUBLIC_API_PREFIXES = [
-  '/api/auth/',        // login, register, forgot, reset, oauth, callback
-  '/api/webhooks/',    // Cakto webhook (tem própria auth por secret)
-]
+// Páginas públicas que devem redirecionar quem já está logado
+const AUTH_PAGES = ['/login', '/cadastro']
 
 async function verifyToken(token: string): Promise<boolean> {
   try {
@@ -40,43 +38,32 @@ async function verifyToken(token: string): Promise<boolean> {
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
-  const token = req.cookies.get(COOKIE_NAME)?.value
 
-  // ── Rotas de página protegidas ─────────────────────────────────────────────
-  if (PROTECTED_PREFIXES.some((p) => pathname.startsWith(p))) {
-    if (!token || !(await verifyToken(token))) {
+  // Rotas /api/* — nunca bloqueadas pelo middleware (cada handler verifica auth própria)
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next()
+  }
+
+  const token = req.cookies.get(COOKIE_NAME)?.value
+  const isAuthenticated = token ? await verifyToken(token) : false
+
+  // ── Páginas protegidas: redireciona para /login se não autenticado ──────────
+  if (PROTECTED_PAGE_PREFIXES.some((p) => pathname.startsWith(p))) {
+    if (!isAuthenticated) {
       const loginUrl = new URL('/login', req.url)
-      // Preserva destino para redirecionar após login (opcional)
       if (pathname !== '/dashboard') {
         loginUrl.searchParams.set('redirect', pathname)
       }
       const res = NextResponse.redirect(loginUrl)
-      // Limpa cookie inválido se existir
-      if (token) res.cookies.delete(COOKIE_NAME)
+      if (token) res.cookies.delete(COOKIE_NAME) // limpa cookie inválido
       return res
     }
     return NextResponse.next()
   }
 
-  // ── Rotas de API protegidas ────────────────────────────────────────────────
-  if (pathname.startsWith('/api/')) {
-    const isPublic = PUBLIC_API_PREFIXES.some((p) => pathname.startsWith(p))
-    if (!isPublic) {
-      if (!token || !(await verifyToken(token))) {
-        return NextResponse.json(
-          { error: 'Não autorizado. Faça login para continuar.' },
-          { status: 401 }
-        )
-      }
-    }
-    return NextResponse.next()
-  }
-
-  // ── Redireciona usuário já logado que tenta acessar /login ou /cadastro ────
-  if (pathname === '/login' || pathname === '/cadastro') {
-    if (token && (await verifyToken(token))) {
-      return NextResponse.redirect(new URL('/dashboard', req.url))
-    }
+  // ── Páginas de auth: redireciona para /dashboard se já logado ───────────────
+  if (AUTH_PAGES.includes(pathname) && isAuthenticated) {
+    return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
   return NextResponse.next()
@@ -84,13 +71,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Aplica o middleware em todas as rotas EXCETO:
-     * - _next/static (arquivos estáticos)
-     * - _next/image (otimização de imagens)
-     * - favicon.ico
-     * - arquivos de imagem/fonte
-     */
+    // Ignora assets estáticos, imagens e fontes
     '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff2?)$).*)',
   ],
 }
